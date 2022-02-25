@@ -17,10 +17,20 @@ endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
-find_package(rosidl_default_generators REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(iii_interfaces REQUIRED)
 
-rosidl_generate_interfaces(${PROJECT_NAME}
-  "msg/PowerlineDirection.msg"
+add_executable(pl_mapper
+  src/pl_mapper_node.cpp
+)
+ament_target_dependencies(pl_mapper
+  rclcpp
+  iii_interfaces
+)
+
+install(TARGETS
+  pl_mapper
+  DESTINATION lib/${PROJECT_NAME}
 )
 
 ament_package()
