@@ -43,6 +43,7 @@ ament_target_dependencies(pl_mapper
   sensor_msgs
   px4_msgs
 )
+install(TARGET pl_mapper)
 
 function(custom_executable target)
   add_executable(${target} src/${target}.cpp)
