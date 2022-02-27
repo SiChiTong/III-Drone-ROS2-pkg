@@ -18,14 +18,23 @@ endif()
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(Eigen3 REQUIRED)
 find_package(iii_interfaces REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(px4_msgs REQUIRED)
 
 add_executable(pl_mapper
   src/pl_mapper_node.cpp
+  src/geometry.cpp
+  src/powerline_class.cpp
+  src/single_line_class.cpp
 )
 ament_target_dependencies(pl_mapper
   rclcpp
+  Eigen3
   iii_interfaces
+  sensor_msgs
+  px4_msgs
 )
 
 install(TARGETS
