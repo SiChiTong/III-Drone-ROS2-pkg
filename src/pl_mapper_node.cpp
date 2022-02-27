@@ -114,17 +114,17 @@ void PowerlineMapperNode::publishPowerline() {
 
 int main(int argc, char *argv[])
 {
-    //rclcpp::init(argc, argv);
+    rclcpp::init(argc, argv);
 
-    //rclcpp::executors::SingleThreadedExecutor executor;
+    rclcpp::executors::SingleThreadedExecutor executor;
 
-    //auto node = std::make_shared<InvertImageNode>();
+    auto node = std::make_shared<PowerlineMapperNode>();
 
-    //executor.add_node(node);
+    executor.add_node(node);
 
-    //executor.spin();
+    executor.spin();
 
-    //rclcpp::shutdown();
+    rclcpp::shutdown();
 
     return 0;
 }
