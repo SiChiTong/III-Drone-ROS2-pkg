@@ -86,9 +86,9 @@ class IIILoggerNode : public rclcpp::Node
 			projection_plane_ofs_ = new std::ofstream(projection_plane_logfile_, std::ofstream::out);
 			*projection_plane_ofs_ << "t,x,y,z" << std::endl;
 
-			camera_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
-				"/cable_camera/image_raw",	10,
-				std::bind(&IIILoggerNode::onImageMsg, this, std::placeholders::_1));
+			//camera_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
+			//	"/cable_camera/image_raw",	10,
+			//	std::bind(&IIILoggerNode::onImageMsg, this, std::placeholders::_1));
 
 			odometry_sub_ = this->create_subscription<px4_msgs::msg::VehicleOdometry>( 
 				"/fmu/vehicle_odometry/out",	10,
@@ -123,6 +123,8 @@ class IIILoggerNode : public rclcpp::Node
 
 			timer = this->create_wall_timer(
 			100ms, std::bind(&IIILoggerNode::timerCallback, this));
+
+			counter = 0;
 		}
 
 	private:
@@ -158,7 +160,7 @@ class IIILoggerNode : public rclcpp::Node
 		std::ofstream *pl_direction_ofs_;
 		std::ofstream *projection_plane_ofs_;
 
-		sensor_msgs::msg::Image::SharedPtr image_;
+		sensor_msgs::msg::Image image_;
 		px4_msgs::msg::VehicleOdometry odom_;
 		iii_interfaces::msg::PowerlineDirection cable_yaw_;
 		sensor_msgs::msg::PointCloud2 points_est_;
@@ -167,44 +169,53 @@ class IIILoggerNode : public rclcpp::Node
 		geometry_msgs::msg::PoseStamped pl_direction_;
 		geometry_msgs::msg::PoseStamped projection_plane_;
 
-		void onImageMsg(const sensor_msgs::msg::Image::SharedPtr msg) {
-			std::cout << "IMG CALLBACK" << std::endl;
-			image_ = msg;
-		}
+		int counter;
+
+		//void onImageMsg(const sensor_msgs::msg::Image::SharedPtr msg) {
+		//	std::cout << "IMG CALLBACK" << std::endl;
+		//	image_ = *msg;
+		//}
 
 		void onOdometryMsg(const px4_msgs::msg::VehicleOdometry::SharedPtr msg) {
 			std::cout << "ODOM CALLBACK" << std::endl;
 			odom_ = *msg;
+			counter++;
 		}
 
 		void  onCableYaw(const iii_interfaces::msg::PowerlineDirection::SharedPtr msg) {
 			std::cout << "YAW CALLBACK" << std::endl;
 			cable_yaw_ = *msg;
+			counter++;
 		}
 
 		void onPointsEst(const sensor_msgs::msg::PointCloud2::SharedPtr msg) {
 			std::cout << "EST CALLBACK" << std::endl;
 			points_est_ = *msg;
+			counter++;
 		}
 
 		void onTransformedPoints(const sensor_msgs::msg::PointCloud2::SharedPtr msg) {
 			std::cout << "TRANS CALLBACK" << std::endl;
 			transformed_points_ = *msg;
+			counter++;
 		}
 
 		void onProjectedPoints(const sensor_msgs::msg::PointCloud2::SharedPtr msg) {
 			std::cout << "PROJ CALLBACK" << std::endl;
 			projected_points_ = *msg;
+			counter++;
 		}
 
 		void onPLDirection(const geometry_msgs::msg::PoseStamped::SharedPtr msg) {
 			std::cout << "DIR CALLBACK" << std::endl;
 			pl_direction_ = *msg;
+			counter++;
 		}
 
 		void onProjectionPlane(const geometry_msgs::msg::PoseStamped::SharedPtr msg) {
 			std::cout << "PLANE CALLBACK" << std::endl;
 			projection_plane_ = *msg;
+			counter++;
 		}
 
 		void streamPoints(std::ofstream *ofs, int time, sensor_msgs::msg::PointCloud2 msg) {
@@ -241,43 +252,32 @@ class IIILoggerNode : public rclcpp::Node
 
 		void timerCallback() {
 
-			int cnt = 0;
-			std::cout << cnt++ << std::endl;
-			
 			unsigned int time = this->get_clock()->now().nanoseconds();
-			std::cout << cnt++ << std::endl;
 
-			std::stringstream img_ss;
-			std::cout << cnt++ << std::endl;
-			img_ss << logfiles_dir_ << "/" << time << ".png";
-			std::cout << cnt++ << std::endl;
-			cv_bridge::CvImagePtr cv_ptr = cv_bridge::toCvCopy(image_, image_->encoding);
-			std::cout << cnt++ << std::endl;
-			cv::Mat img = cv_ptr->image;
-			std::cout << cnt++ << std::endl;
-			cv::imwrite(img_ss.str(), img, CV_BGR);
-			std::cout << cnt++ << std::endl;
+			//std::stringstream img_ss;
+			//std::cout << cnt++ << std::endl;
+			//img_ss << logfiles_dir_ << "/" << time << ".png";
+			//std::cout << cnt++ << std::endl;
+			//cv_bridge::CvImagePtr cv_ptr = cv_bridge::toCvCopy(image_);
+			//std::cout << cnt++ << std::endl;
+			//cv::Mat img = cv_ptr->image;
+			//std::cout << cnt++ << std::endl;
+			//cv::imwrite(img_ss.str(), img);
+			//std::cout << cnt++ << std::endl;
 
 			*odom_ofs_ << time << "," << odom_.x << "," << odom_.y << "," << odom_.z << "," << odom_.q[0] << "," << odom_.q[1] << "," << odom_.q[2] << "," << odom_.q[3] << std::endl;
-			std::cout << cnt++ << std::endl;
 
 			*cable_yaw_ofs_ << time << "," << cable_yaw_.angle << std::endl;
-			std::cout << cnt++ << std::endl;
 
 			streamPoints(points_est_ofs_, time, points_est_);
-			std::cout << cnt++ << std::endl;
 
 			streamPoints(transformed_points_ofs_, time, transformed_points_);
-			std::cout << cnt++ << std::endl;
 
 			streamPoints(projected_points_ofs_, time, projected_points_);
-			std::cout << cnt++ << std::endl;
 
 			*pl_direction_ofs_ << time << "," << pl_direction_.pose.position.x << "," << pl_direction_.pose.position.y << "," << pl_direction_.pose.position.z << std::endl;
-			std::cout << cnt++ << std::endl;
 
 			*projection_plane_ofs_ << time << "," << projection_plane_.pose.position.x << "," << projection_plane_.pose.position.y << "," << projection_plane_.pose.position.z << std::endl;
-			std::cout << cnt++ << std::endl;
 			
 		}
 };

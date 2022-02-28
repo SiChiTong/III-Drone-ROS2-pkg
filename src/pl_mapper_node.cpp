@@ -16,7 +16,7 @@ PowerlineMapperNode::PowerlineMapperNode(const std::string & node_name, const st
         "/hough_transformer/cable_yaw_angle", 10, std::bind(&PowerlineMapperNode::plDirectionCallback, this, std::placeholders::_1));
 
     mmwave_sub_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(
-        "/mmwave/iwr6843_pcl", 10, std::bind(&PowerlineMapperNode::mmWaveCallback, this, std::placeholders::_1));
+        "/iwr6843_pcl", 10, std::bind(&PowerlineMapperNode::mmWaveCallback, this, std::placeholders::_1));
 
     powerline_pub_ = this->create_publisher<iii_interfaces::msg::Powerline>("powerline", 10);
     points_est_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("points_est", 10);
