@@ -37,7 +37,7 @@ class VelocityControlVectorAdvertiser : public rclcpp::Node
 						
 
 			lidar_to_mmwave_pcl_subscription_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(
-				"/lidar_to_mmwave_pcl",	10,
+				"/iwr6843_pcl",	10,
 				std::bind(&VelocityControlVectorAdvertiser::OnDepthMsg, this, std::placeholders::_1));
 
 
@@ -87,7 +87,7 @@ class VelocityControlVectorAdvertiser : public rclcpp::Node
 		int callback_count = 0;
 		float yaw_ = 0;
 		float yaw_deg_ = 0;
-		float yaw_offset_ = 45; // -45
+		float yaw_offset_ = 0; // -45
 		float cable_dist_ = 1.0;
 		float cable_yaw_ = 0.0;
 

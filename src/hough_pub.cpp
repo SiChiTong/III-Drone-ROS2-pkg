@@ -34,7 +34,8 @@ using namespace std::chrono_literals;
 class HoughTFPub : public rclcpp::Node
 {
 	public:
-		HoughTFPub() : Node("hough_tf_pub") {
+		HoughTFPub(const std::string & node_name="hough_transformer", const std::string & node_namespace="/hough_transformer") 
+						: Node(node_name, node_namespace) {
 
 			cable_yaw_publisher_ = this->create_publisher<iii_interfaces::msg::PowerlineDirection>(
 				"cable_yaw_angle", 10);
@@ -112,35 +113,38 @@ void HoughTFPub::KF_update(){
 
 void HoughTFPub::OnOdoMsg(const px4_msgs::msg::VehicleOdometry::SharedPtr _msg){
 
-	yaw_prev_ = yaw_curr_;
+	RCLCPP_DEBUG(this->get_logger(),  "On odometry msg");
 
-	float yaw = atan2(2.0 * (_msg->q[3] * _msg->q[0] + _msg->q[1] * _msg->q[2]) , - 1.0 + 2.0 * (_msg->q[0] * _msg->q[0] + _msg->q[1] * _msg->q[1]));
-	// convert to {0, 2PI}
-	if (yaw > 0){
-		yaw_curr_ = yaw;
-	} else {
-		yaw_curr_ = 2*PI + yaw; // + because yaw_ is negative
-	}
+	//yaw_prev_ = yaw_curr_;
 
-	yaw_diff_ = yaw_curr_ - yaw_prev_;
-	// Fix 2PI-0 crossing
-	if (yaw_diff_ > PI)
-	{
-		yaw_diff_ = yaw_curr_ - (yaw_prev_ + 2*PI);
-	}
-	else if (yaw_diff_ < -PI)
-	{
-		yaw_diff_ = (yaw_curr_ + 2*PI) - yaw_prev_;
-	}
+	//float yaw = atan2(2.0 * (_msg->q[3] * _msg->q[0] + _msg->q[1] * _msg->q[2]) , - 1.0 + 2.0 * (_msg->q[0] * _msg->q[0] + _msg->q[1] * _msg->q[1]));
+	//// convert to {0, 2PI}
+	//if (yaw > 0){
+	//	yaw_curr_ = yaw;
+	//} else {
+	//	yaw_curr_ = 2*PI + yaw; // + because yaw_ is negative
+	//}
+
+	//yaw_diff_ = yaw_curr_ - yaw_prev_;
+	//// Fix 2PI-0 crossing
+	//if (yaw_diff_ > PI)
+	//{
+	//	yaw_diff_ = yaw_curr_ - (yaw_prev_ + 2*PI);
+	//}
+	//else if (yaw_diff_ < -PI)
+	//{
+	//	yaw_diff_ = (yaw_curr_ + 2*PI) - yaw_prev_;
+	//}
 	
 
-	KF_predict();
+	//KF_predict();
 
-	iii_interfaces::msg::PowerlineDirection pl_msg;
-	std::lock_guard<std::mutex> guard(x_hat_mutex_);
+	//iii_interfaces::msg::PowerlineDirection pl_msg;
+	//std::lock_guard<std::mutex> guard(x_hat_mutex_);
 
-	pl_msg.angle = x_hat_;
-	cable_yaw_publisher_->publish(pl_msg);
+	//pl_msg.angle = x_hat_;
+	//RCLCPP_DEBUG(this->get_logger(),  "Publishing cable yaw");
+	//cable_yaw_publisher_->publish(pl_msg);
 }
 
 
@@ -180,8 +184,18 @@ void HoughTFPub::OnCameraMsg(const sensor_msgs::msg::Image::SharedPtr _msg){
 		// Make compatible with right hand rule
 		avg_theta_ = - (avg_theta_tmp / (float)lines.size());
 
+
+
+		iii_interfaces::msg::PowerlineDirection pl_msg;
+		std::lock_guard<std::mutex> guard(x_hat_mutex_);
+
+		pl_msg.angle = avg_theta_;
+		RCLCPP_DEBUG(this->get_logger(),  "Publishing cable yaw");
+		cable_yaw_publisher_->publish(pl_msg);
+
+
 		// Only update KF when there is a new valid angle
-		KF_update();
+		//KF_update();
 	}
 		
 	RCLCPP_INFO(this->get_logger(),  "Theta avg: %f", avg_theta_);

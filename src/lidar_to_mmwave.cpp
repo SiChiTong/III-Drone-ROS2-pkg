@@ -14,6 +14,7 @@
 #include <vector>
 #include <string>
 
+#include "geometry.h"
 
 using namespace std::chrono_literals;
 
@@ -25,7 +26,7 @@ class LidarToMmwave : public rclcpp::Node
 //Messages are sent based on a timed callback.
 	public:
 		LidarToMmwave() : Node("lidar_to_mmwave_converter") {
-			lidar_to_mmwave_pcl_publisher_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("/lidar_to_mmwave_pcl", 10);
+			lidar_to_mmwave_pcl_publisher_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("/iwr6843_pcl", 10);
 
 			subscription_ = this->create_subscription<sensor_msgs::msg::LaserScan>(
 			"/dist_sensor/laser_scan",	10,
@@ -123,14 +124,29 @@ void LidarToMmwave::lidar_to_mmwave_pcl(const sensor_msgs::msg::LaserScan::Share
 	// generate noise
 	float amplitude = 0.05;
 	float noise;
+	float x, y, z;
 	// convert to xyz (including noise)
 	for(int i = 0; i<objects_dist.size(); i++){
+		//noise = -amplitude + static_cast <float> (rand()) /( static_cast <float> (RAND_MAX/(amplitude-(-amplitude))));
+		//pcl_x.push_back( sin(object_center_angls.at(i)) * object_center_dists.at(i) + noise*object_center_dists.at(i));
+		//noise = -amplitude + static_cast <float> (rand()) /( static_cast <float> (RAND_MAX/(amplitude-(-amplitude))));
+		//pcl_y.push_back( sin(			0			) * object_center_dists.at(i) 	+ noise*object_center_dists.at(i));
+		//noise = -amplitude + static_cast <float> (rand()) /( static_cast <float> (RAND_MAX/(amplitude-(-amplitude))));
+		//pcl_z.push_back( cos(object_center_angls.at(i)) * object_center_dists.at(i) + noise*object_center_dists.at(i));
+
 		noise = -amplitude + static_cast <float> (rand()) /( static_cast <float> (RAND_MAX/(amplitude-(-amplitude))));
-		pcl_x.push_back( sin(object_center_angls.at(i)) * object_center_dists.at(i) + noise*object_center_dists.at(i));
+		x = sin(object_center_angls.at(i)) * object_center_dists.at(i) + noise*object_center_dists.at(i);
 		noise = -amplitude + static_cast <float> (rand()) /( static_cast <float> (RAND_MAX/(amplitude-(-amplitude))));
-		pcl_y.push_back( sin(			0			) * object_center_dists.at(i) 	+ noise*object_center_dists.at(i));
+		y = sin(			0			) * object_center_dists.at(i) 	+ noise*object_center_dists.at(i);
 		noise = -amplitude + static_cast <float> (rand()) /( static_cast <float> (RAND_MAX/(amplitude-(-amplitude))));
-		pcl_z.push_back( cos(object_center_angls.at(i)) * object_center_dists.at(i) + noise*object_center_dists.at(i));
+		z = cos(object_center_angls.at(i)) * object_center_dists.at(i) + noise*object_center_dists.at(i);
+
+		// pcl_x.push_back(x);
+		// pcl_y.push_back(y);
+		// pcl_z.push_back(z);
+		pcl_x.push_back(z);
+		pcl_y.push_back(-x);
+		pcl_z.push_back(-y);
 	}
 
 	// create PointCloud2 msg
@@ -138,7 +154,7 @@ void LidarToMmwave::lidar_to_mmwave_pcl(const sensor_msgs::msg::LaserScan::Share
 	auto pcl2_msg = sensor_msgs::msg::PointCloud2();
 	pcl2_msg.header = std_msgs::msg::Header();
 	pcl2_msg.header.stamp = this->now();
-	std::string frameID = "map";
+	std::string frameID = "iwr6843_frame";
 	pcl2_msg.header.frame_id = frameID;
 	pcl2_msg.fields.resize(3);
 	pcl2_msg.fields[0].name = 'x';

@@ -10,59 +10,116 @@
 
 PowerlineMapperNode::PowerlineMapperNode(const std::string & node_name, const std::string & node_namespace) : 
         rclcpp::Node(node_name, node_namespace),
-        powerline_(0.5, 0.5) {
+        powerline_(5., 0.005, this->get_logger()) {
 
     pl_direction_sub_ = this->create_subscription<iii_interfaces::msg::PowerlineDirection>(
-        "/pl_direction", 10, std::bind(&PowerlineMapperNode::plDirectionCallback, this, std::placeholders::_1));
-
-    odometry_sub_ = this->create_subscription<px4_msgs::msg::VehicleOdometry>(
-        "/fmu/vehicle_odometry/out", 10, std::bind(&PowerlineMapperNode::odometryCallback, this, std::placeholders::_1));
+        "/hough_transformer/cable_yaw_angle", 10, std::bind(&PowerlineMapperNode::plDirectionCallback, this, std::placeholders::_1));
 
     mmwave_sub_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(
-        "/mmwave_points", 10, std::bind(&PowerlineMapperNode::mmWaveCallback, this, std::placeholders::_1));
+        "/mmwave/iwr6843_pcl", 10, std::bind(&PowerlineMapperNode::mmWaveCallback, this, std::placeholders::_1));
 
-    char pub_name[100];
-    sprintf(pub_name, "%s/powerline_est", node_namespace);
+    powerline_pub_ = this->create_publisher<iii_interfaces::msg::Powerline>("powerline", 10);
+    points_est_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("points_est", 10);
+    transformed_points_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("transformed_points", 10);
+    projected_points_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("projected_points", 10);
 
-    powerline_pub_ = this->create_publisher<iii_interfaces::msg::Powerline>(pub_name, 10);
+    //individual_pl_pubs_ = new std::vector<rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr>(10); 
+    // this->create_publisher<geometry_msgs::msg::PoseStamped>("individual_powerline_poses", 10);
+    projection_plane_pub_ = this->create_publisher<geometry_msgs::msg::PoseStamped>("projection_plane", 10);
+    pl_direction_pub_ = this->create_publisher<geometry_msgs::msg::PoseStamped>("powerline_direction", 10);
 
-    R_NED_to_body_frame = eulToR(orientation_t(M_PI, 0, 0));
+    tf_buffer_ = std::make_unique<tf2_ros::Buffer>(this->get_clock());
+    transform_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
+
+    // Call on_timer function every second
+    drone_tf_timer_ = this->create_wall_timer(
+      10ms, std::bind(&PowerlineMapperNode::odometryCallback, this));
+
+    geometry_msgs::msg::TransformStamped mmw_tf;
+
+    while(true) {
+
+        try {
+
+            mmw_tf = tf_buffer_->lookupTransform("drone", "iwr6843_frame", tf2::TimePointZero);
+
+            RCLCPP_INFO(this->get_logger(), "Found mmWave transform, frame drone to iwr6843_frame");
+            break;
+
+        } catch(tf2::TransformException & ex) {
+
+            RCLCPP_INFO(this->get_logger(), "Could not get mmWave transform, frame drone to iwr6843_frame, trying again...");
+
+        }
+
+    }
+
+    quat_t mmw_quat(
+        mmw_tf.transform.rotation.w,
+        mmw_tf.transform.rotation.x,
+        mmw_tf.transform.rotation.y,
+        mmw_tf.transform.rotation.z
+    );
+
+    R_drone_to_mmw = quatToMat(mmw_quat);
+
+    v_drone_to_mmw(0) = mmw_tf.transform.translation.x;
+    v_drone_to_mmw(1) = mmw_tf.transform.translation.y;
+    v_drone_to_mmw(2) = mmw_tf.transform.translation.z;
+
+    RCLCPP_INFO(this->get_logger(), "Initialized PowerlineMapperNode");
 
 }
 
-void PowerlineMapperNode::odometryCallback(const px4_msgs::msg::VehicleOdometry::SharedPtr msg) {
+void PowerlineMapperNode::odometryCallback() {
+
+    RCLCPP_INFO(this->get_logger(), "Fetching odometry transform");
+
+    geometry_msgs::msg::TransformStamped tf;
+
+    try {
+
+        tf = tf_buffer_->lookupTransform("drone", "world", tf2::TimePointZero);
+
+    } catch(tf2::TransformException & ex) {
+
+        RCLCPP_FATAL(this->get_logger(), "Could not get odometry transform, frame drone to world");
+        return;
+
+    }
 
     point_t position(
-        msg->x,
-        msg->y, 
-        msg->z
+        tf.transform.translation.x,
+        tf.transform.translation.y, 
+        tf.transform.translation.z
     );
-
-    position = R_NED_to_body_frame * position;
 
     quat_t quat(
-        msg->q[0],
-        msg->q[1],
-        msg->q[2],
-        msg->q[3]
+        tf.transform.rotation.w,
+        tf.transform.rotation.x,
+        tf.transform.rotation.y,
+        tf.transform.rotation.z
     );
-
-    rotation_matrix_t R_quat = quatToMat(quat);
-    R_quat = R_NED_to_body_frame * R_quat;
-    quat = matToQuat(R_quat);
 
     powerline_.UpdateOdometry(position, quat);
 
     publishPowerline();
 
+    publishProjectionPlane();
+
 }
 
 void PowerlineMapperNode::mmWaveCallback(const sensor_msgs::msg::PointCloud2::SharedPtr msg) {
+
+    RCLCPP_INFO(this->get_logger(), "Received mmWave message");
 
     // read PointCloud2 msg data
     int pcl_size = msg->width;
     uint8_t *ptr = msg->data.data();
     const uint32_t POINT_STEP = 12;
+
+    std::vector<point_t> transformed_points;
+    std::vector<point_t> projected_points;
 
     for (size_t i = 0; i < pcl_size; i++) {
 
@@ -72,31 +129,99 @@ void PowerlineMapperNode::mmWaveCallback(const sensor_msgs::msg::PointCloud2::Sh
             *(reinterpret_cast<float*>(ptr + 8))
         );
 
-        powerline_.UpdateLine(point);
+        point = R_drone_to_mmw * point + v_drone_to_mmw;
+
+        point_t projected_point = powerline_.UpdateLine(point);
 
         ptr += POINT_STEP;
 
+        transformed_points.push_back(point);
+        projected_points.push_back(projected_point);
+
     }   
+
+    int count = powerline_.GetLines().size();
+
+    RCLCPP_INFO(this->get_logger(), "Currently has %d lines registered", count);
+
+    publishPoints(transformed_points, transformed_points_pub_);
+    publishPoints(projected_points, projected_points_pub_);
+
+    powerline_.CleanupLines();
 
 }
 
 void PowerlineMapperNode::plDirectionCallback(const iii_interfaces::msg::PowerlineDirection::SharedPtr msg) {
 
+    RCLCPP_INFO(this->get_logger(), "Received powerline direction message");
+
     float direction = msg->angle;
 
     powerline_.UpdateDirection(direction);
+
+    direction = powerline_.GetDirection();
+
+    publishDirection(direction);
 
 }
 
 void PowerlineMapperNode::publishPowerline() {
 
+    RCLCPP_INFO(this->get_logger(), "Publishing powerline");
+
     std::vector<SingleLine> lines = powerline_.GetLines();
+    orientation_t plane_orientation = powerline_.GetPlaneOrientation();
+    quat_t plane_quat = eulToQuat(plane_orientation);
 
     auto msg = iii_interfaces::msg::Powerline();
-    msg.angle = powerline_.GetDirection();
+    auto quat_msg = geometry_msgs::msg::Quaternion();
+    auto pcl2_msg = sensor_msgs::msg::PointCloud2();
+    pcl2_msg.header.frame_id = "drone";
+    pcl2_msg.header.stamp = this->get_clock()->now();
+
+    pcl2_msg.fields.resize(3);
+    pcl2_msg.fields[0].name = 'x';
+    pcl2_msg.fields[0].offset = 0;
+    pcl2_msg.fields[0].datatype = sensor_msgs::msg::PointField::FLOAT32;
+    pcl2_msg.fields[0].count = 1;
+    pcl2_msg.fields[1].name = 'y';
+    pcl2_msg.fields[1].offset = 4;
+    pcl2_msg.fields[1].datatype = sensor_msgs::msg::PointField::FLOAT32;
+    pcl2_msg.fields[1].count = 1;
+    pcl2_msg.fields[2].name = 'z';
+    pcl2_msg.fields[2].offset = 8;
+    pcl2_msg.fields[2].datatype = sensor_msgs::msg::PointField::FLOAT32;
+    pcl2_msg.fields[2].count = 1;
+
+    const uint32_t POINT_STEP = 12;
+
+    if(lines.size() > 0){
+
+        pcl2_msg.data.resize(std::max((size_t)1, lines.size()) * POINT_STEP, 0x00);
+
+    } else {
+
+        RCLCPP_INFO(this->get_logger(), "No registered powerlines");
+
+    }
+
+    pcl2_msg.point_step = POINT_STEP; // size (bytes) of 1 point (float32 * dimensions (3 when xyz))
+    pcl2_msg.row_step = pcl2_msg.data.size();//pcl2_msg.point_step * pcl2_msg.width; // only 1 row because unordered
+    pcl2_msg.height = 1; // because unordered cloud
+    pcl2_msg.width = pcl2_msg.row_step / POINT_STEP; // number of points in cloud
+    pcl2_msg.is_dense = false; // there may be invalid points
+
+    uint8_t *pcl2_ptr = pcl2_msg.data.data();
+
+    quat_msg.w = plane_quat(0);
+    quat_msg.x = plane_quat(1);
+    quat_msg.y = plane_quat(2);
+    quat_msg.z = plane_quat(3);
 
     for (int i = 0; i < lines.size(); i++) {
-        auto point_msg = geometry_msgs::msg::Point32();
+        auto point_msg = geometry_msgs::msg::Point();
+        auto pose_msg = geometry_msgs::msg::Pose();
+        auto pose_stamped_msg = geometry_msgs::msg::PoseStamped();
 
         point_t point = lines[i].GetPoint();
 
@@ -104,27 +229,151 @@ void PowerlineMapperNode::publishPowerline() {
         point_msg.y = point(1);
         point_msg.z = point(2);
 
-        msg.positions.push_back(point_msg);
+        pose_msg.orientation = quat_msg;
+        pose_msg.position = point_msg;
+
+        pose_stamped_msg.pose = pose_msg;
+        pose_stamped_msg.header.frame_id = "drone";
+        pose_stamped_msg.header.stamp = this->get_clock()->now();
+
+        //individual_pl_pubs_->at(i)->publish(pose_stamped_msg);
+
+        msg.poses.push_back(pose_msg);
+
+        *(reinterpret_cast<float*>(pcl2_ptr + 0)) = point(0);
+        *(reinterpret_cast<float*>(pcl2_ptr + 4)) = point(1);
+        *(reinterpret_cast<float*>(pcl2_ptr + 8)) = point(2);
+        pcl2_ptr += POINT_STEP;
 
     }
 
     powerline_pub_->publish(msg);
+    points_est_pub_->publish(pcl2_msg);
 
 }
 
-int main(int argc, char *argv[])
-{
-    rclcpp::init(argc, argv);
+void PowerlineMapperNode::publishProjectionPlane() {
 
-    rclcpp::executors::SingleThreadedExecutor executor;
+    RCLCPP_INFO(this->get_logger(), "Publishing projection plane");
+
+    plane_t plane = powerline_.GetProjectionPlane();
+
+    orientation_t eul = powerline_.GetPlaneOrientation();
+    quat_t quat = eulToQuat(eul);
+
+    auto msg  = geometry_msgs::msg::PoseStamped();
+    auto quat_msg = geometry_msgs::msg::Quaternion();
+    auto point_msg = geometry_msgs::msg::Point();
+
+    quat_msg.w = quat(0);
+    quat_msg.x = quat(1);
+    quat_msg.y = quat(2);
+    quat_msg.z = quat(3);
+
+    point_msg.x = 0;
+    point_msg.y = 0;
+    point_msg.z = 0;
+
+    msg.header.frame_id = "drone";
+    msg.header.stamp = this->get_clock()->now();
+
+    msg.pose.orientation = quat_msg;
+    msg.pose.position = point_msg;
+
+    projection_plane_pub_->publish(msg);
+
+}
+
+void PowerlineMapperNode::publishDirection(float direction) {
+
+    auto msg = geometry_msgs::msg::PoseStamped();
+
+    msg.header.frame_id = "drone";
+    msg.header.stamp = this->get_clock()->now();
+
+    msg.pose.position.x = 0;
+    msg.pose.position.y = 0;
+    msg.pose.position.z = 0;
+
+    orientation_t eul(0, 0, direction);
+
+    quat_t quat = eulToQuat(eul);
+
+    msg.pose.orientation.w = quat(0);
+    msg.pose.orientation.x = quat(1);
+    msg.pose.orientation.y = quat(2);
+    msg.pose.orientation.z = quat(3);
+
+    pl_direction_pub_->publish(msg);
+
+}
+
+void PowerlineMapperNode::publishPoints(std::vector<point_t> points, rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pub) {
+
+    RCLCPP_INFO(this->get_logger(), "Publishing points");
+
+    auto pcl2_msg = sensor_msgs::msg::PointCloud2();
+    pcl2_msg.header.frame_id = "drone";
+    pcl2_msg.header.stamp = this->get_clock()->now();
+
+    pcl2_msg.fields.resize(3);
+    pcl2_msg.fields[0].name = 'x';
+    pcl2_msg.fields[0].offset = 0;
+    pcl2_msg.fields[0].datatype = sensor_msgs::msg::PointField::FLOAT32;
+    pcl2_msg.fields[0].count = 1;
+    pcl2_msg.fields[1].name = 'y';
+    pcl2_msg.fields[1].offset = 4;
+    pcl2_msg.fields[1].datatype = sensor_msgs::msg::PointField::FLOAT32;
+    pcl2_msg.fields[1].count = 1;
+    pcl2_msg.fields[2].name = 'z';
+    pcl2_msg.fields[2].offset = 8;
+    pcl2_msg.fields[2].datatype = sensor_msgs::msg::PointField::FLOAT32;
+    pcl2_msg.fields[2].count = 1;
+
+    const uint32_t POINT_STEP = 12;
+
+    if(points.size() > 0){
+
+        pcl2_msg.data.resize(std::max((size_t)1, points.size()) * POINT_STEP, 0x00);
+
+    } else {
+
+        return;
+
+    }
+
+    pcl2_msg.point_step = POINT_STEP; // size (bytes) of 1 point (float32 * dimensions (3 when xyz))
+    pcl2_msg.row_step = pcl2_msg.data.size();//pcl2_msg.point_step * pcl2_msg.width; // only 1 row because unordered
+    pcl2_msg.height = 1; // because unordered cloud
+    pcl2_msg.width = pcl2_msg.row_step / POINT_STEP; // number of points in cloud
+    pcl2_msg.is_dense = false; // there may be invalid points
+
+    uint8_t *pcl2_ptr = pcl2_msg.data.data();
+
+    for (int i = 0; i < points.size(); i++) {
+        point_t point = points[i];
+
+        *(reinterpret_cast<float*>(pcl2_ptr + 0)) = point(0);
+        *(reinterpret_cast<float*>(pcl2_ptr + 4)) = point(1);
+        *(reinterpret_cast<float*>(pcl2_ptr + 8)) = point(2);
+        pcl2_ptr += POINT_STEP;
+
+    }
+
+    pub->publish(pcl2_msg);
+
+}
+
+int main(int argc, char *argv[]) {
+
+    rclcpp::init(argc, argv);
 
     auto node = std::make_shared<PowerlineMapperNode>();
 
-    executor.add_node(node);
-
-    executor.spin();
+    rclcpp::spin(node);
 
     rclcpp::shutdown();
 
     return 0;
+
 }

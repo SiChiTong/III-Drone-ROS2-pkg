@@ -29,6 +29,8 @@ find_package(geometry_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(cv_bridge REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(tf2_ros REQUIRED)
 
 add_executable(pl_mapper
   src/pl_mapper_node.cpp
@@ -41,9 +43,41 @@ ament_target_dependencies(pl_mapper
   Eigen3
   iii_interfaces
   sensor_msgs
-  px4_msgs
+  tf2
+  tf2_ros
 )
 install(TARGETS pl_mapper DESTINATION lib/${PROJECT_NAME})
+
+add_executable(drone_frame_broadcaster
+  src/drone_frame_broadcaster_node.cpp
+  src/geometry.cpp
+)
+ament_target_dependencies(drone_frame_broadcaster
+  rclcpp
+  Eigen3
+  geometry_msgs
+  px4_msgs
+  tf2
+  tf2_ros
+)
+install(TARGETS drone_frame_broadcaster DESTINATION lib/${PROJECT_NAME})
+
+add_executable(logger
+  src/logger_node.cpp
+  src/geometry.cpp
+)
+ament_target_dependencies(logger
+  rclcpp
+  geometry_msgs
+  sensor_msgs
+  px4_msgs
+  tf2
+  tf2_ros
+  OpenCV
+  cv_bridge
+  iii_interfaces
+)
+install(TARGETS logger DESTINATION lib/${PROJECT_NAME})
 
 function(custom_executable target)
   add_executable(${target} src/${target}.cpp)

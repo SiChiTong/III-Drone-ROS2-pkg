@@ -56,4 +56,6 @@ rotation_matrix_t quatToMat(quat_t quat);
 
 quat_t matToQuat(rotation_matrix_t R);
 
+quat_t eulToQuat(orientation_t eul);
+
 transform_t getTransformMatrix(vector_t vec, quat_t quat);
