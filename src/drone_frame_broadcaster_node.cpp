@@ -29,6 +29,14 @@ explicit
     DroneFrameBroadcasterNode(const std::string & node_name="drone_frame_broadcaster", const std::string & node_namespace="/drone_frame_broadcaster")
             : Node(node_name, node_namespace) {
 
+        // Params
+        this->declare_parameter<std::string>("drone_frame_id", "drone");
+        this->declare_parameter<std::string>("world_frame_id", "world");
+
+        this->get_parameter("drone_frame_id", drone_frame_id_);
+        this->get_parameter("world_frame_id", world_frame_id_);
+
+
         // Initialize the transform broadcaster
         tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
 
@@ -50,8 +58,8 @@ private:
         // Read message content and assign it to
         // corresponding tf variables
         t.header.stamp = now;
-        t.header.frame_id = "world";
-        t.child_frame_id = "drone";
+        t.header.frame_id = world_frame_id_;
+        t.child_frame_id = drone_frame_id_;
 
         point_t position(
             msg->x,
@@ -68,31 +76,9 @@ private:
             msg->q[3]
         );
 
-        //quat_t quat_offset(
-        //    msg->q_offset[0],
-        //    msg->q_offset[1],
-        //    msg->q_offset[2],
-        //    msg->q_offset[3]
-        //);
-
-        //rotation_matrix_t R_quat = quatToMat(quat);
-        //R_quat = R_NED_to_body_frame * R_quat;
-        //quat = matToQuat(R_quat);
-
-        //rotation_matrix_t R_quat_offset = quatToMat(quat_offset);
-        //R_quat_offset = R_NED_to_body_frame * R_quat_offset;
-        //quat_offset = matToQuat(R_quat_offset);
-
-        //quat = quat * quat_offset;
-
         t.transform.translation.x = position(0);
         t.transform.translation.y = position(1);
         t.transform.translation.z = position(2);
-
-        //t.transform.rotation.w = quat_offset[0];
-        //t.transform.rotation.x = quat_offset[1];
-        //t.transform.rotation.y = quat_offset[2];
-        //t.transform.rotation.z = quat_offset[3];
 
         t.transform.rotation.w = quat(0);
         t.transform.rotation.x = quat(1);
@@ -108,6 +94,9 @@ private:
     std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
 
     rotation_matrix_t R_NED_to_body_frame;
+
+    std::string drone_frame_id_;
+    std::string world_frame_id_;
 
 };
 
