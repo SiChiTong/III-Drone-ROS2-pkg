@@ -34,6 +34,7 @@ find_package(OpenCV REQUIRED)
 find_package(cv_bridge REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
+find_package(iwr6843aop_pub REQUIRED)
 
 add_executable(hough_interfacer
   src/hough_interfacer_node.cpp
@@ -62,6 +63,7 @@ ament_target_dependencies(pl_mapper
   sensor_msgs
   tf2
   tf2_ros
+  iwr6843aop_pub
 )
 install(TARGETS pl_mapper DESTINATION lib/${PROJECT_NAME})
 
