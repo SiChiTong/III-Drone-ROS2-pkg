@@ -40,7 +40,7 @@ class HoughTFPub : public rclcpp::Node
 			// Params
 			this->declare_parameter<int>("canny_low_threshold", 50);
 			this->declare_parameter<int>("canny_ratio", 4);
-			this->declare_parameter<int>("canny_kernel_size", 3)
+			this->declare_parameter<int>("canny_kernel_size", 3);
 
 			this->get_parameter("canny_low_threshold", canny_low_threshold_);
 			this->get_parameter("canny_ratio", canny_ratio_);
