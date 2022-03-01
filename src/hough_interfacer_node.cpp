@@ -82,7 +82,8 @@ void HoughInterfacerNode::imageRecvCallback(const sensor_msgs::msg::Image::Share
 
     cv_bridge::CvImagePtr cv_ptr = cv_bridge::toCvCopy(msg, msg->encoding);
 
-    cv::Mat img = cv_ptr->image;
+    cv::Mat img = cv::imread("/home/mp4d/img_pl.png");
+    // cv::Mat img = cv_ptr->image;
 
 	cv::Mat edge;
 	cv::Canny(img, edge, canny_low_threshold_, canny_low_threshold_*canny_ratio_, canny_kernel_size_); // edge detection
