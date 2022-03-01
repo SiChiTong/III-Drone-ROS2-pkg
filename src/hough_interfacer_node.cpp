@@ -82,7 +82,7 @@ void HoughInterfacerNode::imageRecvCallback(const sensor_msgs::msg::Image::Share
 
     cv_bridge::CvImagePtr cv_ptr = cv_bridge::toCvCopy(msg, msg->encoding);
 
-    cv::Mat img = cv::imread("/home/mp4d/img_pl.png");
+    cv::Mat img = cv::imread("/home/mp4d/img_pl.jpg");
     cv::resize(img, img, cv::Size(640,480), cv::INTER_LINEAR);
     // cv::Mat img = cv_ptr->image;
 
