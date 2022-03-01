@@ -2,6 +2,7 @@
 #include <sensor_msgs/msg/image.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
+//#include <sensor_msgs/image_encodings.h>
 
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/buffer.h>
@@ -86,9 +87,9 @@ class IIILoggerNode : public rclcpp::Node
 			projection_plane_ofs_ = new std::ofstream(projection_plane_logfile_, std::ofstream::out);
 			*projection_plane_ofs_ << "t,x,y,z" << std::endl;
 
-			//camera_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
-			//	"/cable_camera/image_raw",	10,
-			//	std::bind(&IIILoggerNode::onImageMsg, this, std::placeholders::_1));
+			camera_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
+				"/cable_camera/image_raw",	10,
+				std::bind(&IIILoggerNode::onImageMsg, this, std::placeholders::_1));
 
 			odometry_sub_ = this->create_subscription<px4_msgs::msg::VehicleOdometry>( 
 				"/fmu/vehicle_odometry/out",	10,
@@ -139,6 +140,7 @@ class IIILoggerNode : public rclcpp::Node
 
 		std::shared_ptr<tf2_ros::TransformListener> transform_listener_{nullptr};
 		std::unique_ptr<tf2_ros::Buffer> tf_buffer_;
+		bool img_rec_ = false;
 
 		rclcpp::TimerBase::SharedPtr timer{nullptr};
 
@@ -171,10 +173,11 @@ class IIILoggerNode : public rclcpp::Node
 
 		int counter;
 
-		//void onImageMsg(const sensor_msgs::msg::Image::SharedPtr msg) {
-		//	std::cout << "IMG CALLBACK" << std::endl;
-		//	image_ = *msg;
-		//}
+		void onImageMsg(const sensor_msgs::msg::Image::SharedPtr msg) {
+			std::cout << "IMG CALLBACK" << std::endl;
+			image_ = *msg;
+			img_rec_ = true;
+		}
 
 		void onOdometryMsg(const px4_msgs::msg::VehicleOdometry::SharedPtr msg) {
 			std::cout << "ODOM CALLBACK" << std::endl;
@@ -218,7 +221,7 @@ class IIILoggerNode : public rclcpp::Node
 			counter++;
 		}
 
-		void streamPoints(std::ofstream *ofs, int time, sensor_msgs::msg::PointCloud2 msg) {
+		void streamPoints(std::ofstream *ofs, unsigned int time, sensor_msgs::msg::PointCloud2 msg) {
 			// read PointCloud2 msg data
 			int pcl_size = msg.width;
 			uint8_t *ptr = msg.data.data();
@@ -244,7 +247,7 @@ class IIILoggerNode : public rclcpp::Node
 				}
 
 				*ofs << "," << point(0) << "," << point(1) << "," << point(2);
-
+				ptr += POINT_STEP;
 			}   
 
 			*ofs << std::endl;
@@ -264,6 +267,14 @@ class IIILoggerNode : public rclcpp::Node
 			//std::cout << cnt++ << std::endl;
 			//cv::imwrite(img_ss.str(), img);
 			//std::cout << cnt++ << std::endl;
+
+			if (img_rec_){
+				cv_bridge::CvImagePtr cv_ptr = cv_bridge::toCvCopy(image_, sensor_msgs::image_encodings::BGR8);
+				cv::Mat img = cv_ptr->image;
+				std::string img_filename = logfiles_dir_ + "/" + std::to_string(time) + ".jpg";
+				cv::imwrite(img_filename, img);
+				std::cout << "Save image as " << logfiles_dir_ + img_filename << std::endl;
+			}
 
 			*odom_ofs_ << time << "," << odom_.x << "," << odom_.y << "," << odom_.z << "," << odom_.q[0] << "," << odom_.q[1] << "," << odom_.q[2] << "," << odom_.q[3] << std::endl;
 
