@@ -128,6 +128,7 @@ void HoughInterfacerNode::imageRecvCallback(const sensor_msgs::msg::Image::Share
     RCLCPP_DEBUG(this->get_logger(),  "Publishing cable yaw");
     cable_yaw_publisher_->publish(pl_msg);
 
+	RCLCPP_INFO(this->get_logger(),  "Theta: %f %f %f %f %f %f %f %f", lines[0], lines[1], lines[2], lines[3], lines[4], lines[5], lines[6], lines[7]);
 	RCLCPP_INFO(this->get_logger(),  "Theta avg: %f", avg_theta_);
 }
 
