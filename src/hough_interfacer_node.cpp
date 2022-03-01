@@ -116,6 +116,11 @@ void HoughInterfacerNode::imageRecvCallback(const sensor_msgs::msg::Image::Share
 		avg_theta_tmp = avg_theta_tmp + theta;
     }
 
+    if (avg_theta_tmp == 0.0) {
+        RCLCPP_INFO(this->get_logger(), "No lines detected");
+        return;
+    }
+
 	
     // Make compatible with right hand rule
     float avg_theta_ = - avg_theta_tmp / n_lines_include_;
