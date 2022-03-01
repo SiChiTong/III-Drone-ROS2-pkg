@@ -39,7 +39,7 @@ extern "C" {
 
 #define LINES_OUT   32
 
-#define HOUGHLINES_ACCEL_NAME   "houghlines_accel_0"
+#define HOUGHLINES_ACCEL_NAME   "houghlines_accel"
 
 using namespace std::chrono_literals;
 
