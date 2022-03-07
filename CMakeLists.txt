@@ -101,6 +101,7 @@ custom_executable(vel_ctrl_vec_pub)
 custom_executable(img_3d_to_2d_proj)
 custom_executable(lidar_to_mmwave)
 custom_executable(hough_pub)
+custom_executable(offboard_control_fly_to_line)
 
 
 ############

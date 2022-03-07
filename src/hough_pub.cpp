@@ -39,6 +39,10 @@ class HoughTFPub : public rclcpp::Node
 
 			cable_yaw_publisher_ = this->create_publisher<iii_interfaces::msg::PowerlineDirection>(
 				"cable_yaw_angle", 10);
+
+
+			hough_yaw_publisher_ = this->create_publisher<iii_interfaces::msg::PowerlineDirection>(
+				"/hough_yaw_angle", 10);
 						
 
 			camera_subscription_ = this->create_subscription<sensor_msgs::msg::Image>(
@@ -63,6 +67,7 @@ class HoughTFPub : public rclcpp::Node
 		rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr camera_subscription_;
 		rclcpp::Subscription<px4_msgs::msg::VehicleOdometry>::SharedPtr odometry_subscription_;
 		rclcpp::Publisher<iii_interfaces::msg::PowerlineDirection>::SharedPtr cable_yaw_publisher_;
+		rclcpp::Publisher<iii_interfaces::msg::PowerlineDirection>::SharedPtr hough_yaw_publisher_;
 		void OnCameraMsg(const sensor_msgs::msg::Image::SharedPtr _msg);
 		void OnOdoMsg(const px4_msgs::msg::VehicleOdometry::SharedPtr _msg);
 		void KF_predict();
@@ -190,18 +195,20 @@ void HoughTFPub::OnCameraMsg(const sensor_msgs::msg::Image::SharedPtr _msg){
 		std::lock_guard<std::mutex> guard(x_hat_mutex_);
 
 		pl_msg.angle = avg_theta_;
-		RCLCPP_DEBUG(this->get_logger(),  "Publishing cable yaw");
+		//RCLCPP_INFO(this->get_logger(),  "Publishing cable yaw: %f", avg_theta_);
 		cable_yaw_publisher_->publish(pl_msg);
+		hough_yaw_publisher_->publish(pl_msg);
 
 
 		// Only update KF when there is a new valid angle
 		//KF_update();
 	}
-		
+		/*
 	RCLCPP_INFO(this->get_logger(),  "Theta avg: %f", avg_theta_);
 	RCLCPP_INFO(this->get_logger(),  "Hough lines: %d", lines.size());
 	RCLCPP_INFO(this->get_logger(),  "Yaw_diff: %f", yaw_diff_);
 	RCLCPP_INFO(this->get_logger(),  "Pred. angle: %f \n", x_hat_);
+	*/
 }
 
 			
