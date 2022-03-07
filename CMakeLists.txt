@@ -15,6 +15,9 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
+include_directories(include/hough-accel-ip/ip/drivers/houghlines_accel_v1_0/src)
+link_directories(include/hough-accel-ip/ip/drivers/houghlines_accel_v1_0/src)
+
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
@@ -31,6 +34,21 @@ find_package(OpenCV REQUIRED)
 find_package(cv_bridge REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
+find_package(iwr6843aop_pub REQUIRED)
+
+add_executable(hough_interfacer
+  src/hough_interfacer_node.cpp
+  include/hough-accel-ip/ip/drivers/houghlines_accel_v1_0/src/xhoughlines_accel_linux.c
+  include/hough-accel-ip/ip/drivers/houghlines_accel_v1_0/src/xhoughlines_accel.c
+)
+ament_target_dependencies(hough_interfacer
+  rclcpp
+  sensor_msgs
+  OpenCV
+  cv_bridge
+  iii_interfaces
+)
+install(TARGETS hough_interfacer DESTINATION lib/${PROJECT_NAME})
 
 add_executable(pl_mapper
   src/pl_mapper_node.cpp
@@ -45,6 +63,7 @@ ament_target_dependencies(pl_mapper
   sensor_msgs
   tf2
   tf2_ros
+  iwr6843aop_pub
 )
 install(TARGETS pl_mapper DESTINATION lib/${PROJECT_NAME})
 
@@ -119,6 +138,12 @@ endif()
 install(DIRECTORY
   launch
   DESTINATION share/${PROJECT_NAME}
+)
+
+# install the config directory
+install(DIRECTORY
+  config
+  DESTINATION share/${PROJECT_NAME}/
 )
 
 ament_package()
