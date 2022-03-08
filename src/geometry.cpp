@@ -50,7 +50,7 @@ point_t projectPointOnPlane(point_t point, plane_t plane) {
 
     float t = - plane.normal.dot(l.p) / plane.normal.dot(plane.normal);
 
-    point_t proj_point = l.p - (point_t)(t*l.v);
+    point_t proj_point = l.p + (point_t)(t*l.v);
 
     return proj_point;
 
