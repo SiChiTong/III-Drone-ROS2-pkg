@@ -48,25 +48,9 @@ point_t projectPointOnPlane(point_t point, plane_t plane) {
         .v = plane.normal
     };
 
-    // float t = plane.normal.dot(plane.p-l.p) / plane.normal.dot(l.v);
     float t = - plane.normal.dot(l.p) / plane.normal.dot(plane.normal);
-    /*float t = l.p.dot(l.v);
-
-    float tmp0 = l.v(0) * t;
-    float tmp1 = l.v(1) * t;
-    float tmp2 = l.v(2) * t;
-
-    float tmp3 = l.p(0) - tmp0;
-    float tmp4 = l.p(1) - tmp1;
-    float tmp5 = l.p(2) - tmp2;*/
-
 
     point_t proj_point = l.p - (point_t)(t*l.v);
-    /*point_t proj_point;
-    proj_point(0) = tmp3;
-    proj_point(1) = tmp4;
-    proj_point(2) = tmp5;*/
-    
 
     return proj_point;
 

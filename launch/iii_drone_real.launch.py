@@ -24,19 +24,19 @@ def generate_launch_description():
 
     mmwave_node = Node(
         package="iwr6843aop_pub",
-        executable="iwr6843_pcl_pub"
+        executable="pcl_pub"
     )
 
-    #tf_drone_to_iwr = Node(
-    #    package="tf2_ros",
-    #    executable="static_transform_publisher",
-    #    arguments=["0", "0", "0.05", "0", "-1.57079632679", "0", "drone", "iwr6843_frame"]
-    #)
+    tf_drone_to_iwr = Node(
+        package="tf2_ros",
+        executable="static_transform_publisher",
+        arguments=["0", "0", "0.05", "0", "1.57079632679", "0", "drone", "iwr6843_frame"]
+    )
 
-    #world_to_drone = Node(
-    #    package="iii_drone",
-    #    executable="drone_frame_broadcaster"
-    #)
+    world_to_drone = Node(
+        package="iii_drone",
+        executable="drone_frame_broadcaster"
+    )
 
     hough = Node(
         package="iii_drone",
@@ -44,16 +44,16 @@ def generate_launch_description():
         parameters=[config]
     )
 
-    #pl_mapper = Node(
-    #    package="iii_drone",
-    #    executable="pl_mapper"
-    #)
+    pl_mapper = Node(
+        package="iii_drone",
+        executable="pl_mapper"
+    )
 
     return LaunchDescription([
         camera_node,
         mmwave_node,
-        #tf_drone_to_iwr,
-        #world_to_drone,
+        tf_drone_to_iwr,
+        world_to_drone,
         hough,
-        #pl_mapper
+        pl_mapper
     ])
