@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import sys
 import os
 import math 
-import matplotlib.pyplot as plt
+import matplotlib.lines as mlines
 
 global logging_dir
 logging_dir = str(sys.argv[1])
@@ -129,12 +129,44 @@ def project_points(data_file):
 
 	return x_px, y_px
 
+
+
+def get_direction(data_file):
+
+	with open(os.path.join(logging_dir + data_file), encoding='utf8') as f:
+		for line in f:
+
+			linestring = line.strip()
+
+			if "t" in linestring:
+				continue
+
+			linestring = line.strip().split(",")
+
+			if int(linestring[0]) < lowest_time:
+				continue
+
+			return linestring[1]
+			
+
+
+
 print("transformed")
 x_px_trans, y_px_trans = project_points("transformed_points.txt")
 print("projected")
 x_px_proj, y_px_proj = project_points("projected_points.txt")
 print("estimated")
 x_px_est, y_px_est = project_points("points_est.txt")
+
+print("direction")
+yaw = float(get_direction("cable_yaw.txt"))
+print(yaw)
+p1 = [image_width/2, image_height/2]
+p2 = [0, 0]
+p2[0] = (math.sin(yaw) * 10) + image_width/2
+p2[1] = (math.cos(yaw) * 10) + image_height/2
+
+
 
 img = cv.imread(logging_dir + "/" + str(lowest_time) + ".jpg")
 #img = cv.resize(img,(640,480),cv.INTER_AREA)
@@ -145,6 +177,20 @@ ax.imshow(img, extent=[0, image_width, 0, image_width])
 ax.scatter(x_px_trans, y_px_trans, linewidth=0.000001, color='red')
 ax.scatter(x_px_proj, y_px_proj, linewidth=0.000001, color='yellow')
 ax.scatter(x_px_est, y_px_est, linewidth=0.000001, color='green')
+
+
+xmin, xmax = ax.get_xbound()
+
+if(p2[0] == p1[0]):
+	xmin = xmax = p1[0]
+	ymin, ymax = ax.get_ybound()
+else:
+	ymax = p1[1]+(p2[1]-p1[1])/(p2[0]-p1[0])*(xmax-p1[0])
+	ymin = p1[1]+(p2[1]-p1[1])/(p2[0]-p1[0])*(xmin-p1[0])
+
+l = mlines.Line2D([xmin,xmax], [ymin,ymax], color='lawngreen')
+ax.add_line(l)
+
 
 ax.imshow(img)
 
