@@ -174,9 +174,9 @@ img = cv.cvtColor(img, cv.COLOR_BGR2RGB)
 #img = plt.imread(logging_dir + "/" + str(lowest_time) + ".jpg")
 fig, ax = plt.subplots()
 ax.imshow(img, extent=[0, image_width, 0, image_width])
-ax.scatter(x_px_trans, y_px_trans, linewidth=0.000001, color='red')
-ax.scatter(x_px_proj, y_px_proj, linewidth=0.000001, color='yellow')
-ax.scatter(x_px_est, y_px_est, linewidth=0.000001, color='green')
+ax.scatter(x_px_trans, y_px_trans, linewidth=0.000001, color='red', label='raw points')
+ax.scatter(x_px_proj, y_px_proj, linewidth=0.000001, color='yellow', label='projected points')
+ax.scatter(x_px_est, y_px_est, linewidth=0.000001, color='green', label='estimated points')
 
 
 xmin, xmax = ax.get_xbound()
@@ -188,9 +188,10 @@ else:
 	ymax = p1[1]+(p2[1]-p1[1])/(p2[0]-p1[0])*(xmax-p1[0])
 	ymin = p1[1]+(p2[1]-p1[1])/(p2[0]-p1[0])*(xmin-p1[0])
 
-l = mlines.Line2D([xmin,xmax], [ymin,ymax], color='lawngreen')
+l = mlines.Line2D([xmin,xmax], [ymin,ymax], color='lawngreen', label='Cable yaw')
 ax.add_line(l)
 
+ax.legend()
 
 ax.imshow(img)
 
