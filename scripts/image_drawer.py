@@ -15,7 +15,7 @@ import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import Image, PointCloud2
 from geometry_msgs.msg import PoseStamped
-import ros2_numpy
+#import ros2_numpy
 
 import cv2 as cv
 from cv_bridge import CvBridge
@@ -86,7 +86,7 @@ class ImageDrawer(Node):
 
         self.lock_ = Lock()
 
-        super().__init("image_drawer")
+        super().__init__("image_drawer")
         self.camera_sub_ = self.create_subscription(
             Image,
             "/cable_camera/image_raw",	
@@ -278,4 +278,14 @@ class ImageDrawer(Node):
 ###############################################################################
 
 if __name__ == "__main__":
-    pass
+    rclpy.init()
+
+    minimal_publisher = ImageDrawer()
+
+    rclpy.spin(minimal_publisher)
+
+    # Destroy the node explicitly
+    # (optional - otherwise it will be done automatically
+    # when the garbage collector destroys the node object)
+    minimal_publisher.destroy_node()
+    rclpy.shutdown()
