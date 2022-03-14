@@ -271,17 +271,19 @@ class ImageDrawer(Node):
         y_px = image_height/2 - np.asarray(x_px_vec) + image_width/2
 
     def pcl_to_numpy(self, pcl_msg):
-        dtype_list = fields_to_dtype(pcl_msg.fields, pcl_msg.point_step)
+        # dtype_list = fields_to_dtype(pcl_msg.fields, pcl_msg.point_step)
 
-        # parse the cloud into an array
-        cloud_arr = np.fromstring(pcl_msg.data)
+        # # parse the cloud into an array
+        # cloud_arr = np.fromstring(pcl_msg.data)
 
-        # remove the dummy fields that were added
-        cloud_arr = cloud_arr[
-            [fname for fname, _type in dtype_list if not (fname[:len("__")] == "__")]]
+        # # remove the dummy fields that were added
+        # cloud_arr = cloud_arr[
+        #     [fname for fname, _type in dtype_list if not (fname[:len("__")] == "__")]]
 
-        arr = np.reshape(cloud_arr, (pcl_msg.height, pcl_msg.width)) 
+        # arr = np.reshape(cloud_arr, (pcl_msg.height, pcl_msg.width)) 
         
+        arr = np.asarray(pcl_msg.data)
+
         return arr
 
 
