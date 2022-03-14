@@ -13,7 +13,7 @@
 
 import rclpy
 from rclpy.node import Node
-from sensor_msgs.msg import Image, PointCloud2
+from sensor_msgs.msg import Image, PointCloud2, PointField
 from geometry_msgs.msg import PoseStamped
 #import ros2_numpy
 
