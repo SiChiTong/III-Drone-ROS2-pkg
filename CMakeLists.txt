@@ -20,7 +20,9 @@ link_directories(include/hough-accel-ip/ip/drivers/houghlines_accel_v1_0/src)
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
+find_package(ament_cmake_python REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(rclpy REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(iii_interfaces REQUIRED)
 find_package(sensor_msgs REQUIRED)
@@ -124,6 +126,13 @@ custom_executable(offboard_control_fly_to_line)
 ############
 # Install ##
 ############
+# Install Python modules
+ament_python_install_package(${PROJECT_NAME})
+# Install Python executables
+install(PROGRAMS
+  scripts/image_drawer.py
+  DESTINATION lib/${PROJECT_NAME}
+)
 
 # Export information to downstream packages
 if(ROS_DISTRO IN_LIST ROS_DISTROS)
