@@ -22,6 +22,7 @@ from cv_bridge import CvBridge
 
 import numpy as np
 
+import time
 import copy
 import sys
 import os
@@ -140,6 +141,8 @@ class ImageDrawer(Node):
             10
         )
 
+        # time.sleep(1)
+
         timer_period = 0.1  # seconds
         self.timer = self.create_timer(timer_period, self.draw_image)
 
@@ -178,7 +181,7 @@ class ImageDrawer(Node):
             2*(self.pl_dir_.pose.orientation.w*self.pl_dir_.pose.orientation.z+self.pl_dir_.pose.orientation.x*self.pl_dir_.pose.orientation.y),
             1-2*(self.pl_dir_.pose.orientation.y*self.pl_dir_.pose.orientation.y+self.pl_dir_.pose.orientation.z*self.pl_dir_.pose.orientation.z)
         )
-        cvb = CvBridge
+        cvb = CvBridge()
         img = cvb.imgmsg_to_cv2(self.img_, desired_encoding='passthrough')
 
         self.lock_.release()
@@ -286,6 +289,7 @@ class ImageDrawer(Node):
         # arr = np.reshape(cloud_arr, (pcl_msg.height, pcl_msg.width)) 
         
         arr = np.asarray(pcl_msg.data)
+        arr = np.reshape(arr, (pcl_msg.))
 
         return arr
 
