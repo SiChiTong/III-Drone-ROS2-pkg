@@ -175,8 +175,8 @@ class ImageDrawer(Node):
         proj_points = self.pcl_to_numpy(self.proj_points_)
         est_points = self.pcl_to_numpy(self.est_points_)
         pl_dir = math.atan2(
-            2*(self.pl_dir_.orientation.w*self.pl_dir_.orientation.z+self.pl_dir_.orientation.x*self.pl_dir_.orientation.y),
-            1-2*(self.pl_dir_.orientation.y*self.pl_dir_.orientation.y+self.pl_dir_.orientation.z*self.pl_dir_.orientation.z)
+            2*(self.pl_dir_.pose.orientation.w*self.pl_dir_.pose.orientation.z+self.pl_dir_.pose.orientation.x*self.pl_dir_.pose.orientation.y),
+            1-2*(self.pl_dir_.pose.orientation.y*self.pl_dir_.pose.orientation.y+self.pl_dir_.pose.orientation.z*self.pl_dir_.pose.orientation.z)
         )
         cvb = CvBridge
         img = cvb.imgmsg_to_cv2(self.img_, desired_encoding='passthrough')
