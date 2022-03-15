@@ -11,6 +11,7 @@
 #include <image_transport/image_transport.hpp>
 #include <cv_bridge/cv_bridge.h>
 
+import struct
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import Image, PointCloud2, PointField
@@ -231,7 +232,6 @@ class ImageDrawer(Node):
 
         self.drawn_img_pub_.publish(msg)
 
-
     def get_draw_points(self, all_points):
         h_focal_length = (img_dims[0] * 0.5) / math.tan(img_hfov * 0.5 ); # in pixels
 
@@ -272,7 +272,6 @@ class ImageDrawer(Node):
             
             y_px_vec.append( -1 * xy_ratio * h_focal_length + image_height/2); # -1 to mirror (pinhole stuff)
 
-
         x_px = image_width/2 - np.asarray(y_px_vec) + image_height/2
         y_px = image_height/2 - np.asarray(x_px_vec) + image_width/2
 
@@ -287,9 +286,22 @@ class ImageDrawer(Node):
         #     [fname for fname, _type in dtype_list if not (fname[:len("__")] == "__")]]
 
         # arr = np.reshape(cloud_arr, (pcl_msg.height, pcl_msg.width)) 
+
+        points = []
+
+        n_points = int(len(pcl_msg.data)/3/4)
+
+        for i in range(n_points):
+            point = [0,0,0]
+
+            for j in range(3):
+                point[j] = struct.unpack("f", pcl_msg.data[i*12+j*4:i*12+(j+1)*4])
+
+            points.append(point)
         
-        arr = np.asarray(pcl_msg.data)
-        arr = np.reshape(arr, (pcl_msg.))
+        arr = np.asarray(points)
+
+        print(arr)
 
         return arr
 
