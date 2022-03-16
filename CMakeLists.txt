@@ -36,6 +36,7 @@ find_package(OpenCV REQUIRED)
 find_package(cv_bridge REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
+find_package(image_transport REQUIRED)
 
 add_executable(hough_interfacer
   src/hough_interfacer_node.cpp
@@ -108,6 +109,7 @@ function(custom_executable target)
     OpenCV
     cv_bridge
     iii_interfaces
+    image_transport
   )
   install(TARGETS ${target}
   DESTINATION lib/${PROJECT_NAME})
@@ -121,6 +123,7 @@ custom_executable(img_3d_to_2d_proj)
 custom_executable(lidar_to_mmwave)
 custom_executable(hough_pub)
 custom_executable(offboard_control_fly_to_line)
+custom_executable(img_decompress)
 
 
 ############
