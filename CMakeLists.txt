@@ -134,6 +134,7 @@ ament_python_install_package(${PROJECT_NAME})
 # Install Python executables
 install(PROGRAMS
   scripts/image_drawer.py
+  scripts/image_decompress.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

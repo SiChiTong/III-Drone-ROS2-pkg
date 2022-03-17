@@ -39,9 +39,9 @@ from threading import Lock
 #  Defines
 ###############################################################################
 global image_width
-image_width  = 1920
+image_width  = 640 #1920
 global image_height
-image_height  = 1080
+image_height  = 480 #1080
 global img_dims
 img_dims = (image_width, image_height)
 
