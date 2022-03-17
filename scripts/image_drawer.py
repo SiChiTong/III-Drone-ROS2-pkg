@@ -175,6 +175,9 @@ class ImageDrawer(Node):
     def draw_image(self):
         self.lock_.acquire(blocking=True)
 
+        if self.trans_points_ is None or self.proj_points_ is None or self.est_points_ is None or self.pl_dir_ is None or self.img_ is None:
+            return
+
         trans_points = self.pcl_to_numpy(self.trans_points_)
         proj_points = self.pcl_to_numpy(self.proj_points_)
         est_points = self.pcl_to_numpy(self.est_points_)
@@ -226,9 +229,9 @@ class ImageDrawer(Node):
         img  = img.reshape(fig.canvas.get_width_height()[::-1] + (3,))
 
         # img is rgb, convert to opencv's default bgr
-        img = cv2.cvtColor(img,cv2.COLOR_RGB2BGR)
+        #img = cv.cvtColor(img,cv.COLOR_RGB2BGR)
 
-        msg = cvb.cv2_to_imgmsg(img, encoding="passthrough")
+        msg = cvb.cv2_to_imgmsg(img, encoding="bgr8")
 
         self.drawn_img_pub_.publish(msg)
 
@@ -275,6 +278,8 @@ class ImageDrawer(Node):
         x_px = image_width/2 - np.asarray(y_px_vec) + image_height/2
         y_px = image_height/2 - np.asarray(x_px_vec) + image_width/2
 
+        return (x_px, y_px)
+
     def pcl_to_numpy(self, pcl_msg):
         # dtype_list = fields_to_dtype(pcl_msg.fields, pcl_msg.point_step)
 
@@ -295,7 +300,7 @@ class ImageDrawer(Node):
             point = [0,0,0]
 
             for j in range(3):
-                point[j] = struct.unpack("f", pcl_msg.data[i*12+j*4:i*12+(j+1)*4])
+                point[j] = struct.unpack("f", pcl_msg.data[i*12+j*4:i*12+(j+1)*4])[0]
 
             points.append(point)
         
