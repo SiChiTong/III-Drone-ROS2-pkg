@@ -51,6 +51,21 @@ ament_target_dependencies(hough_interfacer
 )
 install(TARGETS hough_interfacer DESTINATION lib/${PROJECT_NAME})
 
+add_executable(pl_dir_computer
+  src/pl_dir_computer_node.cpp
+  src/geometry.cpp
+)
+ament_target_dependencies(pl_dir_computer
+  rclcpp
+  Eigen3
+  iii_interfaces
+  sensor_msgs
+  geometry_msgs
+  tf2
+  tf2_ros
+)
+install(TARGETS pl_dir_computer DESTINATION lib/${PROJECT_NAME})
+
 add_executable(pl_mapper
   src/pl_mapper_node.cpp
   src/geometry.cpp

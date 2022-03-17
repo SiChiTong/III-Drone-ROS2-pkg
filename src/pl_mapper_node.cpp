@@ -12,8 +12,8 @@ PowerlineMapperNode::PowerlineMapperNode(const std::string & node_name, const st
         rclcpp::Node(node_name, node_namespace),
         powerline_(5., 0.005, this->get_logger()) {
 
-    pl_direction_sub_ = this->create_subscription<iii_interfaces::msg::PowerlineDirection>(
-        "/hough_transformer/cable_yaw_angle", 10, std::bind(&PowerlineMapperNode::plDirectionCallback, this, std::placeholders::_1));
+    pl_direction_sub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
+        "/pl_dir_computer/powerline_direction", 10, std::bind(&PowerlineMapperNode::plDirectionCallback, this, std::placeholders::_1));
 
     mmwave_sub_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(
         "/iwr6843_pcl", 10, std::bind(&PowerlineMapperNode::mmWaveCallback, this, std::placeholders::_1));
@@ -25,8 +25,8 @@ PowerlineMapperNode::PowerlineMapperNode(const std::string & node_name, const st
 
     //individual_pl_pubs_ = new std::vector<rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr>(10); 
     // this->create_publisher<geometry_msgs::msg::PoseStamped>("individual_powerline_poses", 10);
-    projection_plane_pub_ = this->create_publisher<geometry_msgs::msg::PoseStamped>("projection_plane", 10);
-    pl_direction_pub_ = this->create_publisher<geometry_msgs::msg::PoseStamped>("powerline_direction", 10);
+    //projection_plane_pub_ = this->create_publisher<geometry_msgs::msg::PoseStamped>("projection_plane", 10);
+    //pl_direction_pub_ = this->create_publisher<geometry_msgs::msg::PoseStamped>("powerline_direction", 10);
 
     tf_buffer_ = std::make_unique<tf2_ros::Buffer>(this->get_clock());
     transform_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
@@ -105,7 +105,7 @@ void PowerlineMapperNode::odometryCallback() {
 
     publishPowerline();
 
-    publishProjectionPlane();
+    //publishProjectionPlane();
 
 }
 
@@ -151,18 +151,17 @@ void PowerlineMapperNode::mmWaveCallback(const sensor_msgs::msg::PointCloud2::Sh
 
 }
 
-void PowerlineMapperNode::plDirectionCallback(const iii_interfaces::msg::PowerlineDirection::SharedPtr msg) {
+void PowerlineMapperNode::plDirectionCallback(const geometry_msgs::msg::PoseStamped::SharedPtr msg) {
 
     RCLCPP_INFO(this->get_logger(), "Received powerline direction message");
 
-    float direction = msg->angle;
+    quat_t pl_direction;
+    pl_direction(0) = msg->pose.orientation.w;
+    pl_direction(1) = msg->pose.orientation.x;
+    pl_direction(2) = msg->pose.orientation.y;
+    pl_direction(3) = msg->pose.orientation.z;
 
-    powerline_.UpdateDirection(direction);
-
-    direction = powerline_.GetDirection();
-
-    publishDirection(direction);
-
+    powerline_.UpdateDirection(pl_direction);
 }
 
 void PowerlineMapperNode::publishPowerline() {
@@ -170,8 +169,8 @@ void PowerlineMapperNode::publishPowerline() {
     RCLCPP_INFO(this->get_logger(), "Publishing powerline");
 
     std::vector<SingleLine> lines = powerline_.GetLines();
-    orientation_t plane_orientation = powerline_.GetPlaneOrientation();
-    quat_t plane_quat = eulToQuat(plane_orientation);
+    //orientation_t plane_orientation = powerline_.GetPlaneOrientation();
+    //quat_t plane_quat = eulToQuat(plane_orientation);
 
     auto msg = iii_interfaces::msg::Powerline();
     auto quat_msg = geometry_msgs::msg::Quaternion();
@@ -213,10 +212,10 @@ void PowerlineMapperNode::publishPowerline() {
 
     uint8_t *pcl2_ptr = pcl2_msg.data.data();
 
-    quat_msg.w = plane_quat(0);
-    quat_msg.x = plane_quat(1);
-    quat_msg.y = plane_quat(2);
-    quat_msg.z = plane_quat(3);
+    //quat_msg.w = plane_quat(0);
+    //quat_msg.x = plane_quat(1);
+    //quat_msg.y = plane_quat(2);
+    //quat_msg.z = plane_quat(3);
 
     for (int i = 0; i < lines.size(); i++) {
         auto point_msg = geometry_msgs::msg::Point();
@@ -252,61 +251,36 @@ void PowerlineMapperNode::publishPowerline() {
 
 }
 
-void PowerlineMapperNode::publishProjectionPlane() {
-
-    RCLCPP_INFO(this->get_logger(), "Publishing projection plane");
-
-    plane_t plane = powerline_.GetProjectionPlane();
-
-    orientation_t eul = powerline_.GetPlaneOrientation();
-    quat_t quat = eulToQuat(eul);
-
-    auto msg  = geometry_msgs::msg::PoseStamped();
-    auto quat_msg = geometry_msgs::msg::Quaternion();
-    auto point_msg = geometry_msgs::msg::Point();
-
-    quat_msg.w = quat(0);
-    quat_msg.x = quat(1);
-    quat_msg.y = quat(2);
-    quat_msg.z = quat(3);
-
-    point_msg.x = 0;
-    point_msg.y = 0;
-    point_msg.z = 0;
-
-    msg.header.frame_id = "drone";
-    msg.header.stamp = this->get_clock()->now();
-
-    msg.pose.orientation = quat_msg;
-    msg.pose.position = point_msg;
-
-    projection_plane_pub_->publish(msg);
-
-}
-
-void PowerlineMapperNode::publishDirection(float direction) {
-
-    auto msg = geometry_msgs::msg::PoseStamped();
-
-    msg.header.frame_id = "drone";
-    msg.header.stamp = this->get_clock()->now();
-
-    msg.pose.position.x = 0;
-    msg.pose.position.y = 0;
-    msg.pose.position.z = 0;
-
-    orientation_t eul(0, 0, direction);
-
-    quat_t quat = eulToQuat(eul);
-
-    msg.pose.orientation.w = quat(0);
-    msg.pose.orientation.x = quat(1);
-    msg.pose.orientation.y = quat(2);
-    msg.pose.orientation.z = quat(3);
-
-    pl_direction_pub_->publish(msg);
-
-}
+//void PowerlineMapperNode::publishProjectionPlane() {
+//
+//    RCLCPP_INFO(this->get_logger(), "Publishing projection plane");
+//
+//    plane_t plane = powerline_.GetProjectionPlane();
+//
+//    quat_t quat = powerline_.GetDirection();
+//
+//    auto msg  = geometry_msgs::msg::PoseStamped();
+//    auto quat_msg = geometry_msgs::msg::Quaternion();
+//    auto point_msg = geometry_msgs::msg::Point();
+//
+//    quat_msg.w = quat(0);
+//    quat_msg.x = quat(1);
+//    quat_msg.y = quat(2);
+//    quat_msg.z = quat(3);
+//
+//    point_msg.x = 0;
+//    point_msg.y = 0;
+//    point_msg.z = 0;
+//
+//    msg.header.frame_id = "drone";
+//    msg.header.stamp = this->get_clock()->now();
+//
+//    msg.pose.orientation = quat_msg;
+//    msg.pose.position = point_msg;
+//
+//    projection_plane_pub_->publish(msg);
+//
+//}
 
 void PowerlineMapperNode::publishPoints(std::vector<point_t> points, rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pub) {
 
