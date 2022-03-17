@@ -179,6 +179,8 @@ void HoughTFPub::OnCameraMsg(const sensor_msgs::msg::Image::SharedPtr _msg){
     std::vector<cv::Vec2f> lines; // will hold the results of the detection
     cv::HoughLines(edge, lines, 1, PI/180, 150, 0, 0 ); // runs the actual detection
 
+
+
 	float avg_theta_tmp = 0.0;
 
     for( size_t i = 0; i < lines.size(); i++ )
@@ -194,15 +196,16 @@ void HoughTFPub::OnCameraMsg(const sensor_msgs::msg::Image::SharedPtr _msg){
 			theta = -(PI - theta);
 		}
 		avg_theta_tmp = avg_theta_tmp + theta;
+
+		break;
     }
 
 	
 	if (lines.size() > 0){
 
 		// Make compatible with right hand rule
-		avg_theta_ = - (avg_theta_tmp / (float)lines.size());
-
-
+		//avg_theta_ = - (avg_theta_tmp / (float)lines.size());
+		avg_theta_ = - avg_theta_tmp;
 
 		iii_interfaces::msg::PowerlineDirection pl_msg;
 		std::lock_guard<std::mutex> guard(x_hat_mutex_);

@@ -42,7 +42,7 @@ PowerlineDirectionComputerNode::PowerlineDirectionComputerNode(const std::string
 
     // Call on_timer function every second
     drone_tf_timer_ = this->create_wall_timer(
-      100ms, std::bind(&PowerlineDirectionComputerNode::odometryCallback, this));
+      25ms, std::bind(&PowerlineDirectionComputerNode::odometryCallback, this));
 
     RCLCPP_DEBUG(this->get_logger(), "Initialized PowerlineDirectionComputerNode");
 

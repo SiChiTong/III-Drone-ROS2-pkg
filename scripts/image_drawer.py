@@ -110,7 +110,7 @@ class ImageDrawer(Node):
 
         self.pl_direction_sub_ = self.create_subscription(
             PoseStamped,
-            "/pl_mapper/powerline_direction",	
+            "/pl_dir_computer/powerline_direction",	
             self.on_pl_direction,
             10
         )
@@ -237,6 +237,7 @@ class ImageDrawer(Node):
 
         plt.cla()
         plt.clf()
+        plt.close('all')
 
     def get_draw_points(self, all_points):
         h_focal_length = (img_dims[0] * 0.5) / math.tan(img_hfov * 0.5 ); # in pixels
