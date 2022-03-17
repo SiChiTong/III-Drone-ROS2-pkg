@@ -235,6 +235,9 @@ class ImageDrawer(Node):
 
         self.drawn_img_pub_.publish(msg)
 
+        plt.cla()
+        plt.clf()
+
     def get_draw_points(self, all_points):
         h_focal_length = (img_dims[0] * 0.5) / math.tan(img_hfov * 0.5 ); # in pixels
 
