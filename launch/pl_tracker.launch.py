@@ -1,3 +1,4 @@
+from struct import pack
 from launch import LaunchDescription
 from launch.actions import IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
@@ -22,6 +23,11 @@ def generate_launch_description():
         executable="hough_pub"
     )
 
+    pl_dir_computer = Node(
+        package="iii_drone",
+        executable="pl_dir_computer"
+    )
+
     pl_mapper = Node(
         package="iii_drone",
         executable="pl_mapper"
@@ -31,5 +37,6 @@ def generate_launch_description():
         tf_drone_to_iwr,
         world_to_drone,
         hough,
+        pl_dir_computer,
         pl_mapper
     ])

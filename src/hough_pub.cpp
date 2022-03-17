@@ -51,7 +51,7 @@ class HoughTFPub : public rclcpp::Node
 
 
 			hough_yaw_publisher_ = this->create_publisher<iii_interfaces::msg::PowerlineDirection>(
-				"/hough_yaw_angle", 10);
+				"hough_yaw_angle", 10);
 						
 
 			camera_subscription_ = this->create_subscription<sensor_msgs::msg::Image>(

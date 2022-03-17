@@ -34,13 +34,13 @@ public:
     Powerline(float r, float q, rclcpp::Logger logger);
 
     std::vector<SingleLine> GetLines();
-    float GetDirection();
+    quat_t GetDirection();
     plane_t GetProjectionPlane();
-    orientation_t GetPlaneOrientation();
+    //orientation_t GetPlaneOrientation();
     quat_t GetQuat();
 
     point_t UpdateLine(point_t point);
-    void UpdateDirection(float direction);
+    void UpdateDirection(quat_t pl_direction);
     void UpdateOdometry(point_t position, quat_t quat);
 
     void CleanupLines();
@@ -52,16 +52,16 @@ private:
     std::mutex projection_plane_mutex_;
 
     std::vector<SingleLine> lines_;
-    float direction_;
-    float last_global_input_direction_;
-    float last_global_output_direction_;
-    float last_last_global_output_direction_;
+    quat_t direction_;
+    //float last_global_input_direction_;
+    //float last_global_output_direction_;
+    //float last_last_global_output_direction_;
     point_t position_;
     quat_t quat_;
     point_t last_position_;
     quat_t last_quat_;
     plane_t projection_plane_;
-    orientation_t plane_orientation_;
+    //orientation_t plane_orientation_;
 
     float r_, q_;
 
