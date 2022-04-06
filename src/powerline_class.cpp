@@ -108,19 +108,21 @@ point_t Powerline::UpdateLine(point_t point) {
 
     if (match_index == -1) {
 
-        lines_mutex_.lock(); {
+        all_lines_mutex_.lock(); {
 
-            lines_.push_back(SingleLine(projected_point, r_, q_, logger_));
+            all_lines_.push_back(SingleLine(projected_point, r_, q_, logger_));
 
-        } lines_mutex_.unlock();
+        } all_lines_mutex_.unlock();
 
     } else {
 
-        lines_mutex_.lock(); {
+        all_lines_mutex_.lock(); {
 
-            lines_[match_index].Update(projected_point);
+            all_lines_[match_index].IncrementWeight(2); // param ?
 
-        } lines_mutex_.unlock();
+            all_lines_[match_index].Update(projected_point);
+
+        } all_lines_mutex_.unlock();
 
     }
 
@@ -187,19 +189,30 @@ void Powerline::UpdateOdometry(point_t position, quat_t quat) {
 void Powerline::CleanupLines() {
 
     lines_mutex_.lock(); {
+        all_lines_mutex_.lock(); {
 
-        std::vector<SingleLine> new_vec;
+            std::vector<SingleLine> new_vec;
+            std::vector<SingleLine> another_new_vec;
 
-        for (int i = 0; i < lines_.size(); i++) {
+            for (uint64_t i = 0; i < all_lines_.size(); i++) {
 
-            if (lines_[i].IsAlive(150)) {
+                if (all_lines_[i].IsAlive(150)) {
 
-                new_vec.push_back(lines_[i]);
+                    new_vec.push_back(all_lines_[i]);
 
+                }
+
+                if (all_lines_[i].IsAboveThreshold())
+                {
+                    another_new_vec.push_back(all_lines_[i]);
+                }
+                
             }
-        }
 
-        lines_ = new_vec;
+            all_lines_ = new_vec;
+            lines_ = another_new_vec;
+
+        all_lines_mutex_.unlock(); }
 
     } lines_mutex_.unlock();
 
@@ -266,11 +279,11 @@ int Powerline::findMatchingLine(point_t point) {
     int best_idx = -1;
     float best_dist = std::numeric_limits<float>::infinity();
 
-    lines_mutex_.lock(); {
+    all_lines_mutex_.lock(); {
         
-        for (int i = 0; i < lines_.size(); i++) {
+        for (uint64_t i = 0; i < all_lines_.size(); i++) {
 
-            vector_t vec = (vector_t)(point - lines_[i].GetPoint());
+            vector_t vec = (vector_t)(point - all_lines_[i].GetPoint());
 
             float dist = vec.dot(vec);
 
@@ -282,7 +295,7 @@ int Powerline::findMatchingLine(point_t point) {
             }
         }
 
-    } lines_mutex_.unlock();
+    } all_lines_mutex_.unlock();
 
     return best_idx;
 
@@ -304,7 +317,7 @@ void Powerline::predictLines() {
 
     lines_mutex_.lock(); {
 
-        for (int i = 0; i < lines_.size(); i++) {
+        for (uint64_t i = 0; i < lines_.size(); i++) {
 
             lines_[i].Predict(delta_position, delta_quat);
 

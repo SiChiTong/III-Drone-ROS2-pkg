@@ -47,11 +47,14 @@ public:
 
 private:
     std::mutex lines_mutex_;
+    std::mutex all_lines_mutex_;
     std::mutex direction_mutex_;
     std::mutex odometry_mutex_;
     std::mutex projection_plane_mutex_;
 
-    std::vector<SingleLine> lines_;
+    std::vector<SingleLine> lines_; // holds detected lines above threshol
+    std::vector<SingleLine> all_lines_; // holds all detected lines
+
     quat_t direction_;
     //float last_global_input_direction_;
     //float last_global_output_direction_;

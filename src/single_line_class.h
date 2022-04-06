@@ -39,6 +39,12 @@ public:
 
     bool IsAlive(int max_cnt);
 
+    void IncrementWeight(int diff);
+
+    int GetWeight();
+
+    bool IsAboveThreshold();
+
     void Update(point_t point);
     void Predict(vector_t delta_position, quat_t delta_quat);
 
@@ -47,6 +53,8 @@ private:
     kf_est_t estimates[3];
 
     int alive_cnt_;
+    int weight_cnt_;
+    int line_weight_threshold_ = 50; // param?
 
     float r_;
     float q_;
