@@ -73,7 +73,7 @@ PowerlineMapperNode::PowerlineMapperNode(const std::string & node_name, const st
 
 void PowerlineMapperNode::odometryCallback() {
 
-    RCLCPP_INFO(this->get_logger(), "Fetching odometry transform");
+    // RCLCPP_INFO(this->get_logger(), "Fetching odometry transform");
 
     geometry_msgs::msg::TransformStamped tf;
 
@@ -111,7 +111,7 @@ void PowerlineMapperNode::odometryCallback() {
 
 void PowerlineMapperNode::mmWaveCallback(const sensor_msgs::msg::PointCloud2::SharedPtr msg) {
 
-    RCLCPP_INFO(this->get_logger(), "Received mmWave message");
+    // RCLCPP_INFO(this->get_logger(), "Received mmWave message");
 
     // read PointCloud2 msg data
     int pcl_size = msg->width;
@@ -153,7 +153,7 @@ void PowerlineMapperNode::mmWaveCallback(const sensor_msgs::msg::PointCloud2::Sh
 
 void PowerlineMapperNode::plDirectionCallback(const geometry_msgs::msg::PoseStamped::SharedPtr msg) {
 
-    RCLCPP_INFO(this->get_logger(), "Received powerline direction message");
+    // RCLCPP_INFO(this->get_logger(), "Received powerline direction message");
 
     quat_t pl_direction;
     pl_direction(0) = msg->pose.orientation.w;
@@ -166,7 +166,7 @@ void PowerlineMapperNode::plDirectionCallback(const geometry_msgs::msg::PoseStam
 
 void PowerlineMapperNode::publishPowerline() {
 
-    RCLCPP_INFO(this->get_logger(), "Publishing powerline");
+    // RCLCPP_INFO(this->get_logger(), "Publishing powerline");
 
     std::vector<SingleLine> lines = powerline_.GetLines();
     //orientation_t plane_orientation = powerline_.GetPlaneOrientation();
@@ -284,7 +284,7 @@ void PowerlineMapperNode::publishPowerline() {
 
 void PowerlineMapperNode::publishPoints(std::vector<point_t> points, rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pub) {
 
-    RCLCPP_INFO(this->get_logger(), "Publishing points");
+    // RCLCPP_INFO(this->get_logger(), "Publishing points");
 
     auto pcl2_msg = sensor_msgs::msg::PointCloud2();
     pcl2_msg.header.frame_id = "drone";
