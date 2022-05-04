@@ -31,9 +31,9 @@
 class Powerline
 {
 public:
-    Powerline(float r, float q, rclcpp::Logger logger);
+    Powerline(float r, float q, rclcpp::Logger logger, int alive_cnt_low_thresh, int alive_cnt_high_thresh, int alive_cnt_ceiling);
 
-    std::vector<SingleLine> GetLines();
+    std::vector<SingleLine> GetVisibleLines();
     quat_t GetDirection();
     plane_t GetProjectionPlane();
     //orientation_t GetPlaneOrientation();
@@ -62,6 +62,12 @@ private:
     quat_t last_quat_;
     plane_t projection_plane_;
     //orientation_t plane_orientation_;
+
+    int alive_cnt_low_thresh_;
+    int alive_cnt_high_thresh_;
+    int alive_cnt_ceiling_;
+
+    int id_cnt_;
 
     float r_, q_;
 

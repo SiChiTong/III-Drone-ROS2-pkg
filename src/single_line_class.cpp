@@ -8,7 +8,12 @@
 // Implementation
 /*****************************************************************************/
 
-SingleLine::SingleLine(point_t initial_point, float r, float q, rclcpp::Logger logger) : logger_(logger) {
+SingleLine::SingleLine(int id, point_t initial_point, float r, float q, 
+    rclcpp::Logger logger, int alive_cnt_low_thresh, int alive_cnt_high_thresh, int alive_cnt_ceiling) : logger_(logger) {
+
+    id_ = id;
+
+    projected_point_ = initial_point;
 
     pl_point_ = point_t(
         initial_point(0),
@@ -25,13 +30,24 @@ SingleLine::SingleLine(point_t initial_point, float r, float q, rclcpp::Logger l
     r_ = r;
     q_ = q;
 
-    alive_cnt_ = 0;
+    alive_cnt_low_thresh_ = alive_cnt_low_thresh;
+    alive_cnt_high_thresh_ = alive_cnt_high_thresh;
+    alive_cnt_ceiling_ = alive_cnt_ceiling;
+
+    alive_cnt_ = (alive_cnt_low_thresh_ + alive_cnt_high_thresh_) / 10;
+
+}
+
+int SingleLine::GetId() {
+
+    return id_;
 
 }
 
 SingleLine SingleLine::GetCopy() {
 
-    SingleLine sl(pl_point_, r_, q_, logger_);
+    SingleLine sl(id_, pl_point_, r_, q_, 
+        logger_, alive_cnt_low_thresh_, alive_cnt_high_thresh_, alive_cnt_ceiling_);
 
     return sl;
 
@@ -43,11 +59,11 @@ point_t SingleLine::GetPoint() {
 
 }
 
-bool SingleLine::IsAlive(int max_cnt) {
+bool SingleLine::IsAlive() {
 
     bool in_FOV = estimates[2].state_est > 0.25 && estimates[2].state_est < 20;
 
-    if (in_FOV && ++alive_cnt_ >= max_cnt) {
+    if (in_FOV && --alive_cnt_ <= alive_cnt_low_thresh_) {
 
         return false;
 
@@ -58,8 +74,16 @@ bool SingleLine::IsAlive(int max_cnt) {
     }
 }
 
+bool SingleLine::IsVisible() {
+
+    return alive_cnt_ >= alive_cnt_high_thresh_;
+
+}
+
 
 void SingleLine::Update(point_t point) {
+
+    projected_point_ = point;
 
     for (int i = 0; i < 3; i++) {
 
@@ -75,7 +99,13 @@ void SingleLine::Update(point_t point) {
 
     }
 
-    alive_cnt_ = 0;
+    alive_cnt_ += 2;
+
+    if (alive_cnt_ > alive_cnt_ceiling_) {
+
+        alive_cnt_ = alive_cnt_ceiling_;
+
+    }
 
 }
 
@@ -83,13 +113,13 @@ void SingleLine::Predict(vector_t delta_position, quat_t delta_quat) {
 
     rotation_matrix_t R = quatToMat(delta_quat);
 
-    RCLCPP_INFO(logger_, "Point before: (%f, %f, %f)", pl_point_(0), pl_point_(1), pl_point_(2));
+    // RCLCPP_INFO(logger_, "Point before: (%f, %f, %f)", pl_point_(0), pl_point_(1), pl_point_(2));
 
     pl_point_ = (R * pl_point_) + delta_position;
 
-    RCLCPP_INFO(logger_, "Delta position: (%f, %f, %f)", delta_position(0), delta_position(1), delta_position(2));
+    // RCLCPP_INFO(logger_, "Delta position: (%f, %f, %f)", delta_position(0), delta_position(1), delta_position(2));
 
-    RCLCPP_INFO(logger_, "Point after: (%f, %f, %f)", pl_point_(0), pl_point_(1), pl_point_(2));
+    // RCLCPP_INFO(logger_, "Point after: (%f, %f, %f)", pl_point_(0), pl_point_(1), pl_point_(2));
 
     for (int i = 0; i < 3; i++) {
 
