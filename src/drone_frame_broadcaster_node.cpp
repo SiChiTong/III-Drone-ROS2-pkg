@@ -76,6 +76,11 @@ private:
             msg->q[3]
         );
 
+        orientation_t eul = quatToEul(quat);
+        eul(1) = -eul(1);                       // Dirty hack
+        eul(2) = -eul(2);
+        quat = eulToQuat(eul);
+
         t.transform.translation.x = position(0);
         t.transform.translation.y = position(1);
         t.transform.translation.z = position(2);

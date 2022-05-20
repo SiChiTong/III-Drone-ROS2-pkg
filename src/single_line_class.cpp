@@ -109,13 +109,15 @@ void SingleLine::Update(point_t point) {
 
 }
 
-void SingleLine::Predict(vector_t delta_position, quat_t delta_quat) {
+void SingleLine::Predict(vector_t delta_position, quat_t delta_quat, plane_t projection_plane) {
 
     rotation_matrix_t R = quatToMat(delta_quat);
 
     // RCLCPP_INFO(logger_, "Point before: (%f, %f, %f)", pl_point_(0), pl_point_(1), pl_point_(2));
 
     pl_point_ = (R * pl_point_) + delta_position;
+
+    pl_point_ = projectPointOnPlane(pl_point_, projection_plane);
 
     // RCLCPP_INFO(logger_, "Delta position: (%f, %f, %f)", delta_position(0), delta_position(1), delta_position(2));
 

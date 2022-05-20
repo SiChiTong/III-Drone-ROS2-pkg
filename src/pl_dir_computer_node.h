@@ -77,8 +77,8 @@ private:
     float mapAngle(float curr_angle, float new_angle);
     float backmapAngle(float angle);
 
-    std::ofstream file;
-    std::mutex file_mutex;
+    //std::ofstream file;
+    //std::mutex file_mutex;
 
 };
 

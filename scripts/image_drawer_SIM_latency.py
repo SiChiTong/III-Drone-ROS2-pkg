@@ -47,8 +47,8 @@ img_dims = (image_width, image_height)
 
 
 global img_hfov 
-#img_hfov = 1.3962634016 # usb webcam
-img_hfov = 1.2 # runcam
+img_hfov = 1.3962634016 # usb webcam
+#img_hfov = 1.2 # runcam
 
 DUMMY_FIELD_PREFIX = '__'
 
@@ -95,11 +95,22 @@ class ImageDrawer(Node):
     def __init__(self):
         self.img_ = None
         self.pl_dir_ = None
+        self.pl_dir_buff_ = []
         self.est_points_ = None
+        self.est_points_buff_ = []
         self.trans_points_ = None
+        self.trans_points_buff_ = []
         self.proj_points_ = None
+        self.proj_points_buff_ = []
 
-        self.lock_ = Lock()
+        self.buff_size_ = 1
+
+
+        self.img_lock_ = Lock()
+        self.dir_lock_ = Lock()
+        self.est_lock_ = Lock()
+        self.trans_lock_ = Lock()
+        self.proj_lock_ = Lock()
 
         super().__init__("image_drawer")
         self.camera_sub_ = self.create_subscription(
@@ -149,47 +160,81 @@ class ImageDrawer(Node):
         self.timer = self.create_timer(timer_period, self.draw_image)
 
     def on_img_msg(self, msg):
-        if self.lock_.acquire(blocking=True):
+        if self.img_lock_.acquire(blocking=True):
             self.img_ = msg
-            self.lock_.release()
+            self.img_lock_.release()
 
     def on_pl_direction(self, msg):
-        if self.lock_.acquire(blocking=True):
+        if self.dir_lock_.acquire(blocking=True):
+            if len(self.pl_dir_buff_) == self.buff_size_:
+                self.pl_dir_buff_.pop(0)
             self.pl_dir_ = msg
-            self.lock_.release()
+            self.pl_dir_buff_.append(self.pl_dir_)
+            self.dir_lock_.release()
 
     def on_points_est(self, msg):
-        if self.lock_.acquire(blocking=True):
+        if self.est_lock_.acquire(blocking=True):
+            if len(self.est_points_buff_) == self.buff_size_:
+                self.est_points_buff_.pop(0)
             self.est_points_ = msg
-            self.lock_.release()
+            self.est_points_buff_.append(self.est_points_)
+            self.est_lock_.release()
 
     def on_transformed_points(self, msg):
-        if self.lock_.acquire(blocking=True):
+        if self.trans_lock_.acquire(blocking=True):
+            if len(self.trans_points_buff_) == self.buff_size_:
+                self.trans_points_buff_.pop(0)
             self.trans_points_ = msg
-            self.lock_.release()
+            self.trans_points_buff_.append(self.trans_points_)
+            self.trans_lock_.release()
 
     def on_projected_points(self, msg):
-        if self.lock_.acquire(blocking=True):
+        if self.proj_lock_.acquire(blocking=True):
+            if len(self.proj_points_buff_) == self.buff_size_:
+                self.proj_points_buff_.pop(0)
             self.proj_points_ = msg
-            self.lock_.release()
+            self.proj_points_buff_.append(self.proj_points_)
+            self.proj_lock_.release()
 
     def draw_image(self):
-        self.lock_.acquire(blocking=True)
+        #self.lock_.acquire(blocking=True)
 
-        if self.trans_points_ is None or self.proj_points_ is None or self.est_points_ is None or self.pl_dir_ is None or self.img_ is None:
+        # print("pl_dir_buff_ len: ", len(self.pl_dir_buff_))
+        # print("est_points_buff_ len: ", len(self.est_points_buff_))
+        # print("trans_points_buff_ len: ", len(self.trans_points_buff_))
+        # print("proj_points_buff_ len: ", len(self.proj_points_buff_))
+
+
+        if len(self.trans_points_buff_) != self.buff_size_ or len(self.proj_points_buff_) != self.buff_size_ or len(self.est_points_buff_) != self.buff_size_ or len(self.pl_dir_buff_) != self.buff_size_:
             return
 
-        trans_points = self.pcl_to_numpy(self.trans_points_)
-        proj_points = self.pcl_to_numpy(self.proj_points_)
-        est_points = self.pcl_to_numpy(self.est_points_)
-        pl_dir = math.atan2(
-            2*(self.pl_dir_.pose.orientation.w*self.pl_dir_.pose.orientation.z+self.pl_dir_.pose.orientation.x*self.pl_dir_.pose.orientation.y),
-            1-2*(self.pl_dir_.pose.orientation.y*self.pl_dir_.pose.orientation.y+self.pl_dir_.pose.orientation.z*self.pl_dir_.pose.orientation.z)
-        )
-        cvb = CvBridge()
-        img = cvb.imgmsg_to_cv2(self.img_, desired_encoding='passthrough')
+        if self.trans_lock_.acquire(blocking=True):
+            trans_points = self.pcl_to_numpy(self.trans_points_buff_.pop(0))
+            self.trans_lock_.release()
+        if self.proj_lock_.acquire(blocking=True):    
+            proj_points = self.pcl_to_numpy(self.proj_points_buff_.pop(0))
+            self.proj_lock_.release()
+        if self.est_lock_.acquire(blocking=True):
+            est_points = self.pcl_to_numpy(self.est_points_buff_.pop(0))
+            self.est_lock_.release()
+        if self.dir_lock_.acquire(blocking=True):
+            temp_dir = self.pl_dir_buff_.pop(0)
+            pl_dir = math.atan2(
+                2*(temp_dir.pose.orientation.w*temp_dir.pose.orientation.z+temp_dir.pose.orientation.x*temp_dir.pose.orientation.y),
+                1-2*(temp_dir.pose.orientation.y*temp_dir.pose.orientation.y+temp_dir.pose.orientation.z*temp_dir.pose.orientation.z)
+            )
+            
+            self.dir_lock_.release()
 
-        self.lock_.release()
+        cvb = CvBridge()
+        
+        if self.img_lock_.acquire(blocking=True):
+            img = cvb.imgmsg_to_cv2(self.img_, desired_encoding='passthrough')
+            #img = cv.cvtColor(img, cv.COLOR_BGR2RGB)
+            #img = cv.flip(img, 0)
+            img = cv.rotate(img, cv.ROTATE_180)
+            self.img_lock_.release()
+        #self.lock_.release()
 
         trans_draw = self.get_draw_points(trans_points)
         proj_draw = self.get_draw_points(proj_points)
@@ -239,6 +284,8 @@ class ImageDrawer(Node):
         plt.cla()
         plt.clf()
         plt.close('all')
+
+        print("Drew image")
 
     def get_draw_points(self, all_points):
         h_focal_length = (img_dims[0] * 0.5) / math.tan(img_hfov * 0.5 ); # in pixels
@@ -311,7 +358,7 @@ class ImageDrawer(Node):
         
         arr = np.asarray(points)
 
-        print(arr)
+        #print(arr)
 
         return arr
 

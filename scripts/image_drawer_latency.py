@@ -50,6 +50,9 @@ global img_hfov
 #img_hfov = 1.3962634016 # usb webcam
 img_hfov = 1.2 # runcam
 
+global buff_size 
+buff_size = 1
+
 DUMMY_FIELD_PREFIX = '__'
 
 type_mappings = [(PointField.INT8, np.dtype('int8')), (PointField.UINT8, np.dtype('uint8')), (PointField.INT16, np.dtype('int16')),
@@ -95,11 +98,22 @@ class ImageDrawer(Node):
     def __init__(self):
         self.img_ = None
         self.pl_dir_ = None
+        self.pl_dir_buff_ = []
         self.est_points_ = None
+        self.est_points_buff_ = []
         self.trans_points_ = None
+        self.trans_points_buff_ = []
         self.proj_points_ = None
+        self.proj_points_buff_ = []
 
-        self.lock_ = Lock()
+        self.buff_size_ = 50
+
+
+        self.img_lock_ = Lock()
+        self.dir_lock_ = Lock()
+        self.est_lock_ = Lock()
+        self.trans_lock_ = Lock()
+        self.proj_lock_ = Lock()
 
         super().__init__("image_drawer")
         self.camera_sub_ = self.create_subscription(
@@ -149,47 +163,84 @@ class ImageDrawer(Node):
         self.timer = self.create_timer(timer_period, self.draw_image)
 
     def on_img_msg(self, msg):
-        if self.lock_.acquire(blocking=True):
+        if self.img_lock_.acquire(blocking=True):
             self.img_ = msg
-            self.lock_.release()
+            self.img_lock_.release()
 
     def on_pl_direction(self, msg):
-        if self.lock_.acquire(blocking=True):
+        if self.dir_lock_.acquire(blocking=True):
             self.pl_dir_ = msg
-            self.lock_.release()
+            self.pl_dir_buff_.append(self.pl_dir_)
+            if len(self.pl_dir_buff_) == self.buff_size_:
+                self.pl_dir_buff_.pop(0)
+            self.dir_lock_.release()
 
     def on_points_est(self, msg):
-        if self.lock_.acquire(blocking=True):
+        if self.est_lock_.acquire(blocking=True):
             self.est_points_ = msg
-            self.lock_.release()
+            self.est_points_buff_.append(self.est_points_)
+            if len(self.est_points_buff_) == self.buff_size_:
+                self.est_points_buff_.pop(0)
+            self.est_lock_.release()
 
     def on_transformed_points(self, msg):
-        if self.lock_.acquire(blocking=True):
+        if self.trans_lock_.acquire(blocking=True):
             self.trans_points_ = msg
-            self.lock_.release()
+            self.trans_points_buff_.append(self.trans_points_)
+            if len(self.trans_points_buff_) == self.buff_size_:
+                self.trans_points_buff_.pop(0)
+            self.trans_lock_.release()
 
     def on_projected_points(self, msg):
-        if self.lock_.acquire(blocking=True):
+        if self.proj_lock_.acquire(blocking=True):
             self.proj_points_ = msg
-            self.lock_.release()
+            self.proj_points_buff_.append(self.proj_points_)
+            if len(self.proj_points_buff_) == self.buff_size_:
+                self.proj_points_buff_.pop(0)
+            self.proj_lock_.release()
 
     def draw_image(self):
-        self.lock_.acquire(blocking=True)
+        #self.lock_.acquire(blocking=True)
+
+        print("1")
 
         if self.trans_points_ is None or self.proj_points_ is None or self.est_points_ is None or self.pl_dir_ is None or self.img_ is None:
+        #if not self.trans_points_buff_ or not self.proj_points_buff_ or not self.est_points_buff_ or not self.pl_dir_buff_ is None or self.img_ is None:
             return
 
-        trans_points = self.pcl_to_numpy(self.trans_points_)
-        proj_points = self.pcl_to_numpy(self.proj_points_)
-        est_points = self.pcl_to_numpy(self.est_points_)
-        pl_dir = math.atan2(
-            2*(self.pl_dir_.pose.orientation.w*self.pl_dir_.pose.orientation.z+self.pl_dir_.pose.orientation.x*self.pl_dir_.pose.orientation.y),
-            1-2*(self.pl_dir_.pose.orientation.y*self.pl_dir_.pose.orientation.y+self.pl_dir_.pose.orientation.z*self.pl_dir_.pose.orientation.z)
-        )
-        cvb = CvBridge()
-        img = cvb.imgmsg_to_cv2(self.img_, desired_encoding='passthrough')
+        print("2")
 
-        self.lock_.release()
+        if len(self.trans_points_buff_) == 0 or len(self.proj_points_buff_) == 0 or len(self.est_points_buff_) == 0 or len(self.pl_dir_buff_) == 0:
+        #if not self.trans_points_buff_ or not self.proj_points_buff_ or not self.est_points_buff_ or not self.pl_dir_buff_ is None or self.img_ is None:
+            return
+
+        print("3")
+        if self.trans_lock_.acquire(blocking=True):
+            trans_points = self.pcl_to_numpy(self.trans_points_buff_.pop(0))
+            self.trans_lock_.release()
+        if self.proj_lock_.acquire(blocking=True):    
+            proj_points = self.pcl_to_numpy(self.proj_points_buff_.pop(0))
+            self.proj_lock_.release()
+        if self.est_lock_.acquire(blocking=True):
+            est_points = self.pcl_to_numpy(self.est_points_buff_.pop(0))
+            self.est_lock_.release()
+        if self.dir_lock_.acquire(blocking=True):
+            temp_dir = self.pl_dir_buff_.pop(0)
+            
+            pl_dir = math.atan2(
+                2*(temp_dir.pose.orientation.w*temp_dir.pose.orientation.z+temp_dir.pose.orientation.x*temp_dir.pose.orientation.y),
+                1-2*(temp_dir.pose.orientation.y*temp_dir.pose.orientation.y+temp_dir.pose.orientation.z*temp_dir.pose.orientation.z)
+            )
+            
+            self.dir_lock_.release()
+
+        cvb = CvBridge()
+        
+        if self.img_lock_.acquire(blocking=True):
+            img = cvb.imgmsg_to_cv2(self.img_, desired_encoding='passthrough')
+            img = cv.cvtColor(img, cv.COLOR_BGR2RGB)
+            self.img_lock_.release()
+        #self.lock_.release()
 
         trans_draw = self.get_draw_points(trans_points)
         proj_draw = self.get_draw_points(proj_points)
@@ -206,7 +257,7 @@ class ImageDrawer(Node):
         ax.imshow(img, extent=[0, image_width, 0, image_width])
         ax.scatter(trans_draw[0], trans_draw[1], linewidth=0.000001, color='red', label='raw points')
         ax.scatter(proj_draw[0], proj_draw[1], linewidth=0.000001, color='yellow', label='projected points')
-        ax.scatter(est_draw[0], est_draw[1], linewidth=0.000001, color='green', label='estimated points')
+        #ax.scatter(est_draw[0], est_draw[1], linewidth=0.000001, color='green', label='estimated points')
 
         xmin, xmax = ax.get_xbound()
 
@@ -248,6 +299,10 @@ class ImageDrawer(Node):
         objects_yz_angle = []
 
         for i in range(len(all_points)):
+
+            if all_points[i][2] < 0:
+                continue
+
             current_dist = math.sqrt( pow(all_points[i][0], 2) + pow(all_points[i][1], 2) + pow(all_points[i][2], 2) )
 
             objects_dists.append(current_dist)

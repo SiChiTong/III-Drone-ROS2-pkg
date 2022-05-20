@@ -122,6 +122,8 @@ void PowerlineMapperNode::mmWaveCallback(const sensor_msgs::msg::PointCloud2::Sh
     std::vector<point_t> transformed_points;
     std::vector<point_t> projected_points;
 
+    //point_t dummy(0,0,0);
+
     for (size_t i = 0; i < pcl_size; i++) {
 
         point_t point(
@@ -129,6 +131,12 @@ void PowerlineMapperNode::mmWaveCallback(const sensor_msgs::msg::PointCloud2::Sh
             *(reinterpret_cast<float*>(ptr + 4)),
             *(reinterpret_cast<float*>(ptr + 8))
         );
+
+        // filter points based on diagonal distance
+        if(sqrt( pow(point(0),2) + pow(point(1),2) + pow(point(2),2) ) < 0.75 ) {
+            RCLCPP_INFO(this->get_logger(), "Point filtered away; below minimum distance");
+            continue;
+        }
 
         point = R_drone_to_mmw * point + v_drone_to_mmw;
 
@@ -144,6 +152,9 @@ void PowerlineMapperNode::mmWaveCallback(const sensor_msgs::msg::PointCloud2::Sh
     // int count = powerline_.GetVisibleLines().size();
 
     // RCLCPP_INFO(this->get_logger(), "Currently has %d visible lines registered", count);
+
+    // transformed_points.push_back(dummy);
+    // projected_points.push_back(dummy);
 
     publishPoints(transformed_points, transformed_points_pub_);
     publishPoints(projected_points, projected_points_pub_);

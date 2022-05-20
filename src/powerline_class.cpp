@@ -313,11 +313,19 @@ void Powerline::predictLines() {
 
     } odometry_mutex_.unlock();
 
+    plane_t projection_plane;
+
+    projection_plane_mutex_.lock(); {
+
+        projection_plane = projection_plane_;
+
+    } projection_plane_mutex_.unlock();
+
     lines_mutex_.lock(); {
 
         for (int i = 0; i < lines_.size(); i++) {
 
-            lines_[i].Predict(delta_position, delta_quat);
+            lines_[i].Predict(delta_position, delta_quat, projection_plane);
 
         }
 

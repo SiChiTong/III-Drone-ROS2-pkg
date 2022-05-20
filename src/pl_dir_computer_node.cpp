@@ -9,7 +9,7 @@
 /*****************************************************************************/
 
 PowerlineDirectionComputerNode::PowerlineDirectionComputerNode(const std::string & node_name, const std::string & node_namespace) : 
-        rclcpp::Node(node_name, node_namespace), file("/home/ffn/test.txt", std::ofstream::out) {
+        rclcpp::Node(node_name, node_namespace) {
 
     r_ = 0.8;
     q_ = 1-r_;
@@ -98,30 +98,31 @@ void PowerlineDirectionComputerNode::plDirectionCallback(const iii_interfaces::m
 
 void PowerlineDirectionComputerNode::predict() {
 
-    file_mutex.lock();
+    //file_mutex.lock();
 
-    file << "Prediction step:" << std::endl;
+    //file << "Prediction step:" << std::endl;
 
     quat_t inv_last_drone_quat = quatInv(last_drone_quat_);
     quat_t inv_drone_quat = quatInv(drone_quat_);
     quat_t delta_drone_quat = quatMultiply(drone_quat_, inv_last_drone_quat);
+    orientation_t inv_drone_eul = quatToEul(inv_drone_quat);
 
     orientation_t delta_drone_eul = quatToEul(delta_drone_quat);
 
-    file << "delta_drone_eul: [" << std::to_string(delta_drone_eul(0)) << ", " << std::to_string(delta_drone_eul(1)) << ", " << std::to_string(delta_drone_eul(2)) << "]" << std::endl;
+    //file << "delta_drone_eul: [" << std::to_string(delta_drone_eul(0)) << ", " << std::to_string(delta_drone_eul(1)) << ", " << std::to_string(delta_drone_eul(2)) << "]" << std::endl;
 
     float delta_yaw = delta_drone_eul(2);
     float pl_dir_yaw;
 
     kf_mutex_.lock(); {
 
-        file << "Previous direction est: " << std::to_string(pl_angle_est.state_est) << std::endl;
-        pl_angle_est.state_est = pl_angle_est.state_est + delta_yaw;
+        //file << "Previous direction est: " << std::to_string(pl_angle_est.state_est) << std::endl;
+        pl_angle_est.state_est = pl_angle_est.state_est - delta_yaw;
         pl_angle_est.var_est += q_;
 
-        file << "New direction est before backmapping: " << std::to_string(pl_angle_est.state_est) << std::endl;
+        //file << "New direction est before backmapping: " << std::to_string(pl_angle_est.state_est) << std::endl;
         pl_angle_est.state_est = backmapAngle(pl_angle_est.state_est);
-        file << "New direction est after backmapping: " << std::to_string(pl_angle_est.state_est) << std::endl << std::endl;
+        //file << "New direction est after backmapping: " << std::to_string(pl_angle_est.state_est) << std::endl << std::endl;
 
         pl_dir_yaw = pl_angle_est.state_est;
 
@@ -129,7 +130,8 @@ void PowerlineDirectionComputerNode::predict() {
 
     orientation_t pl_dir_eul(
         0,
-        -inv_drone_quat(1),
+        //-inv_drone_quat(1),
+        -inv_drone_eul(1),
         pl_dir_yaw
     );
 
@@ -141,26 +143,28 @@ void PowerlineDirectionComputerNode::predict() {
 
     } direction_mutex_.unlock();
 
-    file << std::to_string(pl_dir_yaw) << std::endl;
+    //file << std::to_string(pl_dir_yaw) << std::endl;
 
-    file_mutex.unlock();
+    //file_mutex.unlock();
 
 }
 
 void PowerlineDirectionComputerNode::update(float pl_angle) {
 
-    file_mutex.lock();
+    pl_angle = 2*M_PI - pl_angle;
 
-    file << "Update step:" << std::endl;
+    //file_mutex.lock();
+
+    //file << "Update step:" << std::endl;
 
     kf_mutex_.lock(); {
 
-        file << "Received angle: " << std::to_string(pl_angle) << std::endl;
-        file << "Current est angle: " << std::to_string(pl_angle_est.state_est) << std::endl;
+        //file << "Received angle: " << std::to_string(pl_angle) << std::endl;
+        //file << "Current est angle: " << std::to_string(pl_angle_est.state_est) << std::endl;
 
         pl_angle = mapAngle(pl_angle_est.state_est, pl_angle);
 
-        file << "Received angle after mapping: " << std::to_string(pl_angle) << std::endl;
+        //file << "Received angle after mapping: " << std::to_string(pl_angle) << std::endl;
 
         float y_bar = pl_angle - pl_angle_est.state_est;
         float s = pl_angle_est.var_est + r_;
@@ -170,17 +174,17 @@ void PowerlineDirectionComputerNode::update(float pl_angle) {
         pl_angle_est.state_est += k*y_bar;
         pl_angle_est.var_est *= 1-k;
 
-        file << "New est angle: " << std::to_string(pl_angle_est.state_est) << std::endl;
+        //file << "New est angle: " << std::to_string(pl_angle_est.state_est) << std::endl;
 
         pl_angle_est.state_est = backmapAngle(pl_angle_est.state_est);
 
-        file << "New est angle after backmapping: " << std::to_string(pl_angle_est.state_est) << std::endl << std::endl;
+        //file << "New est angle after backmapping: " << std::to_string(pl_angle_est.state_est) << std::endl << std::endl;
 
-        file << std::to_string(pl_angle_est.state_est) << std::endl;
+        //file << std::to_string(pl_angle_est.state_est) << std::endl;
 
     } kf_mutex_.unlock();
 
-    file_mutex.unlock();
+    //file_mutex.unlock();
 
 }
 
@@ -223,7 +227,7 @@ float PowerlineDirectionComputerNode::backmapAngle(float angle) {
 
 float PowerlineDirectionComputerNode::mapAngle(float curr_angle, float new_angle) {
 
-    file << "Mapping angle: " << std::to_string(new_angle) << std::endl;
+    //file << "Mapping angle: " << std::to_string(new_angle) << std::endl;
 
     float angle_candidates[4];
     angle_candidates[0] = new_angle;
@@ -242,7 +246,7 @@ float PowerlineDirectionComputerNode::mapAngle(float curr_angle, float new_angle
 
     }
 
-    file << "Angle candidates: " << std::to_string(angle_candidates[0]) << " " << std::to_string(angle_candidates[1]) << " " << std::to_string(angle_candidates[2]) << " " << std::to_string(angle_candidates[3]) << std::endl;
+    //file << "Angle candidates: " << std::to_string(angle_candidates[0]) << " " << std::to_string(angle_candidates[1]) << " " << std::to_string(angle_candidates[2]) << " " << std::to_string(angle_candidates[3]) << std::endl;
 
     float best_angle = angle_candidates[0];
     float best_angle_diff = abs(angle_candidates[0]-curr_angle);
@@ -257,7 +261,7 @@ float PowerlineDirectionComputerNode::mapAngle(float curr_angle, float new_angle
 
     }
 
-    file << "Best candidate: " << std::to_string(best_angle) << std::endl;
+    //file << "Best candidate: " << std::to_string(best_angle) << std::endl;
 
     return best_angle;
 

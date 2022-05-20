@@ -213,7 +213,7 @@ void HoughTFPub::OnCameraMsg(const sensor_msgs::msg::Image::SharedPtr _msg){
 		pl_msg.angle = avg_theta_;
 		//RCLCPP_INFO(this->get_logger(),  "Publishing cable yaw: %f", avg_theta_);
 		cable_yaw_publisher_->publish(pl_msg);
-		hough_yaw_publisher_->publish(pl_msg);
+		//hough_yaw_publisher_->publish(pl_msg); // 
 
 
 		// Only update KF when there is a new valid angle

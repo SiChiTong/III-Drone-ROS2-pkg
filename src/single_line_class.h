@@ -42,7 +42,7 @@ public:
     bool IsVisible();
 
     void Update(point_t point);
-    void Predict(vector_t delta_position, quat_t delta_quat);
+    void Predict(vector_t delta_position, quat_t delta_quat, plane_t projection_plane);
 
     int GetId();
 
