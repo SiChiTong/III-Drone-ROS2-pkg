@@ -8,7 +8,7 @@
 // Implementation
 /*****************************************************************************/
 
-Powerline::Powerline(float r, float q, rclcpp::Logger logger) : logger_(logger) {
+Powerline::Powerline(float r, float q, rclcpp::Logger logger, int alive_cnt_low_thresh, int alive_cnt_high_thresh, int alive_cnt_ceiling) : logger_(logger) {
 
     direction_ = quat_t(1,0,0,0);
     //last_global_input_direction_ = 0;
@@ -24,9 +24,15 @@ Powerline::Powerline(float r, float q, rclcpp::Logger logger) : logger_(logger) 
     r_ = r;
     q_ = q;
 
+    alive_cnt_low_thresh_ = alive_cnt_low_thresh;
+    alive_cnt_high_thresh_ = alive_cnt_high_thresh;
+    alive_cnt_ceiling_ = alive_cnt_ceiling;
+
+    id_cnt_ = 0;
+
 }
 
-std::vector<SingleLine> Powerline::GetLines() {
+std::vector<SingleLine> Powerline::GetVisibleLines() {
 
     std::vector<SingleLine> ret_lines;
 
@@ -34,7 +40,11 @@ std::vector<SingleLine> Powerline::GetLines() {
 
         for (int i = 0; i < lines_.size(); i++) {
 
-            ret_lines.push_back(lines_[i].GetCopy());
+            if (lines_[i].IsVisible()) {
+
+                ret_lines.push_back(lines_[i].GetCopy());
+
+            }
 
         }
 
@@ -110,7 +120,8 @@ point_t Powerline::UpdateLine(point_t point) {
 
         lines_mutex_.lock(); {
 
-            lines_.push_back(SingleLine(projected_point, r_, q_, logger_));
+            lines_.push_back(SingleLine(id_cnt_++, projected_point, r_, q_, 
+                    logger_, alive_cnt_low_thresh_, alive_cnt_high_thresh_, alive_cnt_ceiling_));
 
         } lines_mutex_.unlock();
 
@@ -192,7 +203,7 @@ void Powerline::CleanupLines() {
 
         for (int i = 0; i < lines_.size(); i++) {
 
-            if (lines_[i].IsAlive(150)) {
+            if (lines_[i].IsAlive()) {
 
                 new_vec.push_back(lines_[i]);
 
