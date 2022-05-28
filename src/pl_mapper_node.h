@@ -63,6 +63,7 @@ private:
 
     rotation_matrix_t R_drone_to_mmw;
     vector_t v_drone_to_mmw;
+    quat_t pl_direction_; ////////
 
     void odometryCallback();
     void mmWaveCallback(const sensor_msgs::msg::PointCloud2::SharedPtr msg);

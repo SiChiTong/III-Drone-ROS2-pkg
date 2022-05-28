@@ -48,10 +48,8 @@ img_dims = (image_width, image_height)
 
 global img_hfov 
 #img_hfov = 1.3962634016 # usb webcam
-img_hfov = 1.2 # runcam
+img_hfov = 1.15 # runcam
 
-global buff_size 
-buff_size = 1
 
 DUMMY_FIELD_PREFIX = '__'
 
@@ -106,7 +104,7 @@ class ImageDrawer(Node):
         self.proj_points_ = None
         self.proj_points_buff_ = []
 
-        self.buff_size_ = 50
+        self.buff_size_ = 10
 
 
         self.img_lock_ = Lock()
@@ -171,7 +169,7 @@ class ImageDrawer(Node):
         if self.dir_lock_.acquire(blocking=True):
             self.pl_dir_ = msg
             self.pl_dir_buff_.append(self.pl_dir_)
-            if len(self.pl_dir_buff_) == self.buff_size_:
+            if len(self.pl_dir_buff_) == self.buff_size_+1:
                 self.pl_dir_buff_.pop(0)
             self.dir_lock_.release()
 
@@ -179,7 +177,7 @@ class ImageDrawer(Node):
         if self.est_lock_.acquire(blocking=True):
             self.est_points_ = msg
             self.est_points_buff_.append(self.est_points_)
-            if len(self.est_points_buff_) == self.buff_size_:
+            if len(self.est_points_buff_) == self.buff_size_+1:
                 self.est_points_buff_.pop(0)
             self.est_lock_.release()
 
@@ -187,7 +185,7 @@ class ImageDrawer(Node):
         if self.trans_lock_.acquire(blocking=True):
             self.trans_points_ = msg
             self.trans_points_buff_.append(self.trans_points_)
-            if len(self.trans_points_buff_) == self.buff_size_:
+            if len(self.trans_points_buff_) == self.buff_size_+1:
                 self.trans_points_buff_.pop(0)
             self.trans_lock_.release()
 
@@ -195,34 +193,39 @@ class ImageDrawer(Node):
         if self.proj_lock_.acquire(blocking=True):
             self.proj_points_ = msg
             self.proj_points_buff_.append(self.proj_points_)
-            if len(self.proj_points_buff_) == self.buff_size_:
+            if len(self.proj_points_buff_) == self.buff_size_+1:
                 self.proj_points_buff_.pop(0)
             self.proj_lock_.release()
 
     def draw_image(self):
-        #self.lock_.acquire(blocking=True)
 
-        print("1")
+        print("trans: ", len(self.trans_points_buff_))
+        print("proj: ", len(self.proj_points_buff_))
+        print("est: ", len(self.est_points_buff_))
+        print("dir: ", len(self.pl_dir_buff_))
 
-        if self.trans_points_ is None or self.proj_points_ is None or self.est_points_ is None or self.pl_dir_ is None or self.img_ is None:
-        #if not self.trans_points_buff_ or not self.proj_points_buff_ or not self.est_points_buff_ or not self.pl_dir_buff_ is None or self.img_ is None:
-            return
-
-        print("2")
-
-        if len(self.trans_points_buff_) == 0 or len(self.proj_points_buff_) == 0 or len(self.est_points_buff_) == 0 or len(self.pl_dir_buff_) == 0:
+        if len(self.trans_points_buff_) < self.buff_size_-1 or len(self.proj_points_buff_) < self.buff_size_-1 or len(self.est_points_buff_) < self.buff_size_-1 or len(self.pl_dir_buff_) < self.buff_size_-1:
         #if not self.trans_points_buff_ or not self.proj_points_buff_ or not self.est_points_buff_ or not self.pl_dir_buff_ is None or self.img_ is None:
             return
 
         print("3")
         if self.trans_lock_.acquire(blocking=True):
-            trans_points = self.pcl_to_numpy(self.trans_points_buff_.pop(0))
+            if len(self.trans_points_buff_) == self.buff_size_-1:
+                trans_points = np.asarray([[-1,-1,-1]])
+            else:
+                trans_points = self.pcl_to_numpy(self.trans_points_buff_.pop(0))
             self.trans_lock_.release()
-        if self.proj_lock_.acquire(blocking=True):    
-            proj_points = self.pcl_to_numpy(self.proj_points_buff_.pop(0))
+        if self.proj_lock_.acquire(blocking=True): 
+            if len(self.proj_points_buff_) == self.buff_size_-1:
+                proj_points = np.asarray([[-1,-1,-1]])
+            else:   
+                proj_points = self.pcl_to_numpy(self.proj_points_buff_.pop(0))
             self.proj_lock_.release()
         if self.est_lock_.acquire(blocking=True):
-            est_points = self.pcl_to_numpy(self.est_points_buff_.pop(0))
+            if len(self.est_points_buff_) == self.buff_size_-1:
+                est_points = np.asarray([[-1,-1,-1]])
+            else:   
+                est_points = self.pcl_to_numpy(self.est_points_buff_.pop(0))
             self.est_lock_.release()
         if self.dir_lock_.acquire(blocking=True):
             temp_dir = self.pl_dir_buff_.pop(0)
@@ -239,6 +242,8 @@ class ImageDrawer(Node):
         if self.img_lock_.acquire(blocking=True):
             img = cvb.imgmsg_to_cv2(self.img_, desired_encoding='passthrough')
             img = cv.cvtColor(img, cv.COLOR_BGR2RGB)
+            img = cv.flip(img, 0)
+            img = cv.flip(img, 1)
             self.img_lock_.release()
         #self.lock_.release()
 
@@ -256,8 +261,8 @@ class ImageDrawer(Node):
         fig, ax = plt.subplots()
         ax.imshow(img, extent=[0, image_width, 0, image_width])
         ax.scatter(trans_draw[0], trans_draw[1], linewidth=0.000001, color='red', label='raw points')
-        ax.scatter(proj_draw[0], proj_draw[1], linewidth=0.000001, color='yellow', label='projected points')
-        #ax.scatter(est_draw[0], est_draw[1], linewidth=0.000001, color='green', label='estimated points')
+        #ax.scatter(proj_draw[0], proj_draw[1], linewidth=0.000001, color='yellow', label='projected points')
+        ax.scatter(est_draw[0], est_draw[1], linewidth=0.000001, color='green', label='estimated points')
 
         xmin, xmax = ax.get_xbound()
 
@@ -280,8 +285,6 @@ class ImageDrawer(Node):
         img = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
         img  = img.reshape(fig.canvas.get_width_height()[::-1] + (3,))
 
-        # img is rgb, convert to opencv's default bgr
-        #img = cv.cvtColor(img,cv.COLOR_RGB2BGR)
 
         msg = cvb.cv2_to_imgmsg(img, encoding="bgr8")
 
@@ -341,16 +344,6 @@ class ImageDrawer(Node):
         return (x_px, y_px)
 
     def pcl_to_numpy(self, pcl_msg):
-        # dtype_list = fields_to_dtype(pcl_msg.fields, pcl_msg.point_step)
-
-        # # parse the cloud into an array
-        # cloud_arr = np.fromstring(pcl_msg.data)
-
-        # # remove the dummy fields that were added
-        # cloud_arr = cloud_arr[
-        #     [fname for fname, _type in dtype_list if not (fname[:len("__")] == "__")]]
-
-        # arr = np.reshape(cloud_arr, (pcl_msg.height, pcl_msg.width)) 
 
         points = []
 
@@ -366,7 +359,7 @@ class ImageDrawer(Node):
         
         arr = np.asarray(points)
 
-        print(arr)
+        #print(arr)
 
         return arr
 

@@ -10,8 +10,10 @@
 
 PowerlineMapperNode::PowerlineMapperNode(const std::string & node_name, const std::string & node_namespace) : 
         rclcpp::Node(node_name, node_namespace),
-        powerline_(5., 0.005, this->get_logger(), 0, 60, 90) {
-            // last three values indicate alive_cnt_low_thresh, alive_cnt_high_thresh, alive_cnt_ceiling
+        powerline_(1., 0.25, this->get_logger(), 0, 60, 150) {
+            // first val = r = mmW variance 5
+            // second val = q = odo variance 0.005
+            // last three values indicate alive_cnt_low_thresh=0, alive_cnt_high_thresh=60, alive_cnt_ceiling=90
 
     pl_direction_sub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
         "/pl_dir_computer/powerline_direction", 10, std::bind(&PowerlineMapperNode::plDirectionCallback, this, std::placeholders::_1));
@@ -173,6 +175,8 @@ void PowerlineMapperNode::plDirectionCallback(const geometry_msgs::msg::PoseStam
     pl_direction(2) = msg->pose.orientation.y;
     pl_direction(3) = msg->pose.orientation.z;
 
+    pl_direction_ = pl_direction; ////////
+
     powerline_.UpdateDirection(pl_direction);
 }
 
@@ -224,10 +228,15 @@ void PowerlineMapperNode::publishPowerline() {
 
     uint8_t *pcl2_ptr = pcl2_msg.data.data();
 
-    //quat_msg.w = plane_quat(0);
-    //quat_msg.x = plane_quat(1);
-    //quat_msg.y = plane_quat(2);
-    //quat_msg.z = plane_quat(3);
+    // quat_msg.w = plane_quat(0);
+    // quat_msg.x = plane_quat(1);
+    // quat_msg.y = plane_quat(2);
+    // quat_msg.z = plane_quat(3);
+    
+    // quat_msg.w = pl_direction_(0); ////////
+    // quat_msg.x = pl_direction_(1); ////////
+    // quat_msg.y = pl_direction_(2); ////////
+    // quat_msg.z = pl_direction_(3); ////////
 
     for (int i = 0; i < lines.size(); i++) {
         auto point_msg = geometry_msgs::msg::Point();
@@ -258,6 +267,8 @@ void PowerlineMapperNode::publishPowerline() {
         pcl2_ptr += POINT_STEP;
 
     }
+
+    msg.count = lines.size();
 
     powerline_pub_->publish(msg);
     points_est_pub_->publish(pcl2_msg);
