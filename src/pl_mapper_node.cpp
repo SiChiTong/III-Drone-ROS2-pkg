@@ -135,8 +135,8 @@ void PowerlineMapperNode::mmWaveCallback(const sensor_msgs::msg::PointCloud2::Sh
         );
 
         // filter points based on diagonal distance
-        if(sqrt( pow(point(0),2) + pow(point(1),2) + pow(point(2),2) ) < 0.75 ) {
-            RCLCPP_INFO(this->get_logger(), "Point filtered away; below minimum distance");
+        if(sqrt( pow(point(0),2) + pow(point(1),2) + pow(point(2),2) ) < 0.25 ) {
+            // RCLCPP_INFO(this->get_logger(), "Point filtered away; below minimum distance");
             continue;
         }
 
@@ -216,7 +216,7 @@ void PowerlineMapperNode::publishPowerline() {
 
     } else {
 
-        RCLCPP_INFO(this->get_logger(), "No registered powerlines");
+        // RCLCPP_INFO(this->get_logger(), "No registered powerlines");
 
     }
 
