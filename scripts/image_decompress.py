@@ -26,7 +26,7 @@ class ImageDecompressor(Node):
 
         self.image_pub = self.create_publisher(
             Image,
-            "/image_raw",
+            "/decompressed_image",
             10
         )
 

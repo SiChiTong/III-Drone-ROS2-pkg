@@ -16,7 +16,8 @@ HoughInterfacerNode::HoughInterfacerNode(const std::string & node_name, const st
     this->declare_parameter<int>("canny_low_threshold", 50);
     this->declare_parameter<int>("canny_ratio", 4);
     this->declare_parameter<int>("canny_kernel_size", 3);
-    this->declare_parameter<int>("n_lines_include", 8);
+    // this->declare_parameter<int>("n_lines_include", 8);
+    this->declare_parameter<int>("n_lines_include", 1); // only use first value to accomodate edge case ±PI flip
 
     this->get_parameter("canny_low_threshold", canny_low_threshold_);
     this->get_parameter("canny_ratio", canny_ratio_);
@@ -32,9 +33,11 @@ HoughInterfacerNode::HoughInterfacerNode(const std::string & node_name, const st
     video_qos.reliable();
     video_qos.durability_volatile();
 
+    // subscriber_ = this->create_subscription<sensor_msgs::msg::Image>(
+    //         "/usb_cam/image_raw", video_qos, std::bind(&HoughInterfacerNode::imageRecvCallback, this, std::placeholders::_1));
     subscriber_ = this->create_subscription<sensor_msgs::msg::Image>(
-            "/usb_cam/image_raw", video_qos, std::bind(&HoughInterfacerNode::imageRecvCallback, this, std::placeholders::_1));
-
+            "/image_raw", video_qos, std::bind(&HoughInterfacerNode::imageRecvCallback, this, std::placeholders::_1));
+    
     cable_yaw_publisher_ = this->create_publisher<iii_interfaces::msg::PowerlineDirection>(
         "/cable_yaw_angle", 10);
 
@@ -117,7 +120,7 @@ void HoughInterfacerNode::imageRecvCallback(const sensor_msgs::msg::Image::Share
     }
 
     if (avg_theta_tmp == 0.0) {
-        RCLCPP_INFO(this->get_logger(), "No lines detected");
+        // RCLCPP_INFO(this->get_logger(), "No lines detected");
         return;
     }
 
@@ -131,8 +134,8 @@ void HoughInterfacerNode::imageRecvCallback(const sensor_msgs::msg::Image::Share
     RCLCPP_DEBUG(this->get_logger(),  "Publishing cable yaw");
     cable_yaw_publisher_->publish(pl_msg);
 
-	RCLCPP_INFO(this->get_logger(),  "Theta: %f %f %f %f %f %f %f %f", lines[0], lines[1], lines[2], lines[3], lines[4], lines[5], lines[6], lines[7]);
-	RCLCPP_INFO(this->get_logger(),  "Theta avg: %f", avg_theta_);
+	// RCLCPP_INFO(this->get_logger(),  "Theta: %f %f %f %f %f %f %f %f", lines[0], lines[1], lines[2], lines[3], lines[4], lines[5], lines[6], lines[7]);
+	// RCLCPP_INFO(this->get_logger(),  "Theta avg: %f", avg_theta_);
 }
 
 
