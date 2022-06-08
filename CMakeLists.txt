@@ -114,6 +114,19 @@ ament_target_dependencies(logger
 )
 install(TARGETS logger DESTINATION lib/${PROJECT_NAME})
 
+
+add_executable(offboard_control_ID
+  src/offboard_control_ID.cpp
+)
+ament_target_dependencies(offboard_control_ID
+    rclcpp
+    px4_msgs
+    std_msgs
+    iii_interfaces
+)
+install(TARGETS offboard_control_ID DESTINATION lib/${PROJECT_NAME})
+
+
 function(custom_executable target)
   add_executable(${target} src/${target}.cpp)
   ament_target_dependencies(${target}
@@ -132,13 +145,13 @@ endfunction()
 
 
 # Add examples
-custom_executable(offboard_control)
-custom_executable(vel_ctrl_vec_pub)
-custom_executable(img_3d_to_2d_proj)
-custom_executable(lidar_to_mmwave)
+#custom_executable(offboard_control)
+#custom_executable(vel_ctrl_vec_pub)
+#custom_executable(img_3d_to_2d_proj)
+#custom_executable(lidar_to_mmwave)
 custom_executable(hough_pub)
-custom_executable(offboard_control_fly_to_line)
-custom_executable(img_decompress)
+#custom_executable(offboard_control_fly_to_line)
+#custom_executable(img_decompress)
 
 
 ############
