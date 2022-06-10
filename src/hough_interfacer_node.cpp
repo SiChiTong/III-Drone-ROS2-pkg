@@ -8,8 +8,8 @@
 // Implementation
 /*****************************************************************************/
 
-HoughInterfacerNode::HoughInterfacerNode(const std::string & node_name, const std::string & node_namespace) 
-    : Node(node_name, node_namespace)
+HoughInterfacerNode::HoughInterfacerNode(const std::string & node_name) 
+    : Node(node_name)
 {
 
     // Params
@@ -39,7 +39,7 @@ HoughInterfacerNode::HoughInterfacerNode(const std::string & node_name, const st
             "/image_raw", video_qos, std::bind(&HoughInterfacerNode::imageRecvCallback, this, std::placeholders::_1));
     
     cable_yaw_publisher_ = this->create_publisher<iii_interfaces::msg::PowerlineDirection>(
-        "/cable_yaw_angle", 10);
+        "/hough_cable_yaw_angle", 10);
 
 }
 

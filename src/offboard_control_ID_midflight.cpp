@@ -114,7 +114,7 @@ public:
 
 
 		powerline_dir_sub_ = create_subscription<iii_interfaces::msg::PowerlineDirection>(
-            "/hough_transformer/cable_yaw_angle",
+            "/hough_cable_yaw_angle",
             10,
             [this](iii_interfaces::msg::PowerlineDirection::ConstSharedPtr msg) {
 			  pl_yaw_ = -msg->angle;
