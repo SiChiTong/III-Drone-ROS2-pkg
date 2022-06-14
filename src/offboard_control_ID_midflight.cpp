@@ -93,7 +93,7 @@ public:
 		vehicle_command_publisher_ =
 			this->create_publisher<VehicleCommand>("fmu/vehicle_command/in", 10);
 
-
+		this->declare_parameter<float>("yaw_frac", 0.1);
 
 		// VehicleStatus: https://github.com/PX4/px4_msgs/blob/master/msg/VehicleStatus.msg
 		vehicle_status_sub_ = create_subscription<px4_msgs::msg::VehicleStatus>(
@@ -476,7 +476,11 @@ void OffboardControl::publish_test_setpoint() {
 	msg.x = x_world_to_id_point_; 		// in meters NED
 	msg.y = y_world_to_id_point_;
 	msg.z = -(z_world_to_id_point_-1.0);
-	msg.yaw = drone_yaw_-pl_yaw_;
+
+	float yaw_frac;
+	this->get_parameter("yaw_frac", yaw_frac);
+
+	msg.yaw = drone_yaw_-yaw_frac*pl_yaw_;
 
 	// RCLCPP_INFO(this->get_logger(), "X:%f Y:%f Z:%f YAW:%f", msg.x, msg.y, msg.z, msg.yaw);
 
