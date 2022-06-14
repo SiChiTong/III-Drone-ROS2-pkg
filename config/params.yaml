@@ -22,3 +22,5 @@ hough_transformer:
       image_height: 480
       camera_name: "test_camera"
       camera_info_url: "package://usb_cam/config/camera_info.yaml"
+      cfg_path: "/home/mp4d/ros2_ws/src/iwr6843aop/cfg_files/30deg_Group_18m_30Hz.cfg"
+      

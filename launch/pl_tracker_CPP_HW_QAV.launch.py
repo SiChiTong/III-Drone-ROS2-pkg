@@ -24,7 +24,9 @@ def generate_launch_description():
 
     mmwave_node = Node(
         package="iwr6843aop",
-        executable="iwr6843aop_test"
+        executable="iwr6843aop_test",
+        # arguments=["/home/mp4d/ros2_ws/src/iwr6843aop/cfg_files/30deg_Group_18m_30Hz.cfg"]
+        parameters = [config]
     )
 
     tf_drone_to_iwr = Node(
