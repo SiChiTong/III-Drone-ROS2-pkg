@@ -94,7 +94,7 @@ public:
 			this->create_publisher<VehicleCommand>("fmu/vehicle_command/in", 10);
 
 		this->declare_parameter<float>("yaw_frac", 0.1);
-		this->declare_parameter<float>("pos_frac", 0.25);
+		this->declare_parameter<float>("pos_frac", 0.5);
 
 		// VehicleStatus: https://github.com/PX4/px4_msgs/blob/master/msg/VehicleStatus.msg
 		vehicle_status_sub_ = create_subscription<px4_msgs::msg::VehicleStatus>(
@@ -484,10 +484,10 @@ void OffboardControl::publish_test_setpoint() {
 
 	msg.x = x_frac; 		// in meters NED
 	msg.y = y_frac;
-	msg.z = z_frac;
+	// msg.z = z_frac;
 	// msg.x = x_world_to_id_point_; 		// in meters NED
 	// msg.y = y_world_to_id_point_;
-	// msg.z = -(z_world_to_id_point_-1.0);
+	msg.z = -(z_world_to_id_point_-1.0);
 
 	float yaw_frac;
 	this->get_parameter("yaw_frac", yaw_frac);
