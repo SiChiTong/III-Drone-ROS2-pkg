@@ -17,6 +17,7 @@
   <depend>sensor_msgs</depend>
   <depend>tf2</depend>
   <depend>iwr6843aop_pub</depend>
+  <depend>iwr6843aop</depend>
   <depend>image_transport</depend>
 
 
