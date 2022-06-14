@@ -94,6 +94,7 @@ public:
 			this->create_publisher<VehicleCommand>("fmu/vehicle_command/in", 10);
 
 		this->declare_parameter<float>("yaw_frac", 0.1);
+		this->declare_parameter<float>("pos_frac", 0.25);
 
 		// VehicleStatus: https://github.com/PX4/px4_msgs/blob/master/msg/VehicleStatus.msg
 		vehicle_status_sub_ = create_subscription<px4_msgs::msg::VehicleStatus>(
@@ -473,13 +474,24 @@ void OffboardControl::publish_test_setpoint() {
 
 	TrajectorySetpoint msg{};
 	msg.timestamp = timestamp_.load();
-	msg.x = x_world_to_id_point_; 		// in meters NED
-	msg.y = y_world_to_id_point_;
-	msg.z = -(z_world_to_id_point_-1.0);
+
+	float pos_frac;
+	this->get_parameter("pos_frac", pos_frac);
+
+	float x_frac = drone_x_ + (x_world_to_id_point_ - drone_x_)*pos_frac;
+	float y_frac = drone_y_ + (y_world_to_id_point_ - drone_y_)*pos_frac;
+	float z_frac = - (drone_z_ + ((z_world_to_id_point_-1.0) - drone_z_)*pos_frac);
+
+	msg.x = x_frac; 		// in meters NED
+	msg.y = y_frac;
+	msg.z = z_frac;
+	// msg.x = x_world_to_id_point_; 		// in meters NED
+	// msg.y = y_world_to_id_point_;
+	// msg.z = -(z_world_to_id_point_-1.0);
 
 	float yaw_frac;
 	this->get_parameter("yaw_frac", yaw_frac);
-
+	
 	msg.yaw = drone_yaw_-yaw_frac*pl_yaw_;
 
 	// RCLCPP_INFO(this->get_logger(), "X:%f Y:%f Z:%f YAW:%f", msg.x, msg.y, msg.z, msg.yaw);
