@@ -160,6 +160,22 @@ public:
 			}
 		);
 
+		pl_dir_est_sub_ = create_subscription<geometry_msgs::msg::PoseStamped>(
+        	"/pl_dir_estimator/powerline_direction_est", 10,
+			[this](geometry_msgs::msg::PoseStamped::ConstSharedPtr msg) {
+			  // If user has typed an ID
+				powerline_location_mutex_.lock(); {
+					float tmp_0 = float(msg->pose.orientation.w);
+					float tmp_1 = float(msg->pose.orientation.x);
+					float tmp_2 = float(msg->pose.orientation.y);
+					float tmp_3 = float(msg->pose.orientation.z);
+
+					pl_yaw_ = atan2(2*(tmp_0*tmp_3 + tmp_1*tmp_2), 1-2*(tmp_2*tmp_2+tmp_3*tmp_3));
+
+				} powerline_location_mutex_.unlock();
+			}
+		);
+
 		odometry_subscription_ = this->create_subscription<px4_msgs::msg::VehicleOdometry>(  ////
 			"/fmu/vehicle_odometry/out",	10,
             [this](px4_msgs::msg::VehicleOdometry::ConstSharedPtr _msg) {
@@ -317,6 +333,8 @@ private:
 
 	rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr pl0_pose_est_sub_;
 	rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr pl1_pose_est_sub_;
+	rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr pl_dir_est_sub_;
+
 	rclcpp::Subscription<std_msgs::msg::Int32>::SharedPtr powerline_ID_sub_;
 	rclcpp::Subscription<px4_msgs::msg::Timesync>::SharedPtr timesync_sub_;
 	rclcpp::Subscription<px4_msgs::msg::VehicleStatus>::SharedPtr vehicle_status_sub_;
@@ -476,19 +494,19 @@ void OffboardControl::publish_test_setpoint() {
 	TrajectorySetpoint msg{};
 	msg.timestamp = timestamp_.load();
 
-	float pos_frac;
-	this->get_parameter("pos_frac", pos_frac);
+	// float pos_frac;
+	// this->get_parameter("pos_frac", pos_frac);
 
-	float x_frac = drone_x_ + (x_world_to_id_point_ - drone_x_)*pos_frac;
-	float y_frac = drone_y_ + (y_world_to_id_point_ - drone_y_)*pos_frac;
-	float z_frac = - (drone_z_ + ((z_world_to_id_point_-1.0) - drone_z_)*pos_frac);
+	// float x_frac = drone_x_ + (x_world_to_id_point_ - drone_x_)*pos_frac;
+	// float y_frac = drone_y_ + (y_world_to_id_point_ - drone_y_)*pos_frac;
+	// float z_frac = - (drone_z_ + ((z_world_to_id_point_-1.0) - drone_z_)*pos_frac);
 
-	msg.x = x_frac; 		// in meters NED
-	msg.y = y_frac;
+	// msg.x = x_frac; 		// in meters NED
+	// msg.y = y_frac;
 	// msg.z = z_frac;
-	// msg.x = x_world_to_id_point_; 		// in meters NED
-	// msg.y = y_world_to_id_point_;
-	msg.z = -(z_world_to_id_point_-1.0);
+	msg.x = drone_x_; 		// in meters NED
+	msg.y = drone_y_;
+	msg.z = drone_z_;
 
 	float yaw_frac;
 	this->get_parameter("yaw_frac", yaw_frac);
