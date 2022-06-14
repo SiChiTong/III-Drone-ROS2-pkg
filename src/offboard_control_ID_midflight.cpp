@@ -255,16 +255,17 @@ public:
 			}
 
 			else if(counter_ < 100){
-				if(drone_z_ > -1) // Probably on ground
+				if(drone_z_ > -0.5) // Probably on ground, takeoff to hover
 				{
 					if(counter_ == 21){
-						RCLCPP_INFO(this->get_logger(), "Beginning hover \n");
+						RCLCPP_INFO(this->get_logger(), "Takeoff to hover \n");
 					}
 					publish_offboard_control_mode();
 					publish_hover_setpoint();
 				}
 				else
-				{
+				{	// probably in air, hold
+					counter_ = 100;
 					if(counter_ == 21){
 						RCLCPP_INFO(this->get_logger(), "Holding position \n");
 					}

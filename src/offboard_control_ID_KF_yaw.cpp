@@ -113,11 +113,18 @@ public:
 			});
 
 
-		powerline_dir_sub_ = create_subscription<iii_interfaces::msg::PowerlineDirection>(
-            "/hough_cable_yaw_angle",
+		powerline_dir_sub_ = create_subscription<geometry_msgs::msg::PoseStamped>(
+            "/pl_dir_computer/powerline_direction",
             10,
-            [this](iii_interfaces::msg::PowerlineDirection::ConstSharedPtr msg) {
-			  pl_yaw_ = -msg->angle;
+            [this](geometry_msgs::msg::PoseStamped::ConstSharedPtr msg) {
+
+			  float tmp_0 = float(msg->pose.orientation.w);
+			  float tmp_1 = float(msg->pose.orientation.x);
+			  float tmp_2 = float(msg->pose.orientation.y);
+			  float tmp_3 = float(msg->pose.orientation.z);
+
+			  pl_yaw_ = atan2(2*(tmp_0*tmp_3 + tmp_1*tmp_2), 1-2*(tmp_2*tmp_2+tmp_3*tmp_3));
+
 			});
 
 
@@ -255,16 +262,17 @@ public:
 			}
 
 			else if(counter_ < 100){
-				if(drone_z_ > -1) // Probably on ground
+				if(drone_z_ > -0.5) // Probably on ground, takeoff to hover
 				{
 					if(counter_ == 21){
-						RCLCPP_INFO(this->get_logger(), "Beginning hover \n");
+						RCLCPP_INFO(this->get_logger(), "Takeoff to hover \n");
 					}
 					publish_offboard_control_mode();
 					publish_hover_setpoint();
 				}
 				else
-				{
+				{	// probably in air, hold
+					counter_ = 100;
 					if(counter_ == 21){
 						RCLCPP_INFO(this->get_logger(), "Holding position \n");
 					}
@@ -312,7 +320,7 @@ private:
 	rclcpp::Publisher<VehicleCommand>::SharedPtr vehicle_command_publisher_;
 	rclcpp::Publisher<geometry_msgs::msg::PointStamped>::SharedPtr id_point_pub_;
 
-	rclcpp::Subscription<iii_interfaces::msg::PowerlineDirection>::SharedPtr powerline_dir_sub_;
+	rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr powerline_dir_sub_;
 	rclcpp::Subscription<iii_interfaces::msg::Powerline>::SharedPtr powerline_sub_;
 	rclcpp::Subscription<std_msgs::msg::Int32>::SharedPtr powerline_ID_sub_;
 	rclcpp::Subscription<px4_msgs::msg::Timesync>::SharedPtr timesync_sub_;

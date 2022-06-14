@@ -127,6 +127,31 @@ ament_target_dependencies(offboard_control_ID
 install(TARGETS offboard_control_ID DESTINATION lib/${PROJECT_NAME})
 
 
+add_executable(offboard_control_ID_midflight
+  src/offboard_control_ID_midflight.cpp
+)
+ament_target_dependencies(offboard_control_ID_midflight
+    rclcpp
+    px4_msgs
+    std_msgs
+    iii_interfaces
+)
+install(TARGETS offboard_control_ID_midflight DESTINATION lib/${PROJECT_NAME})
+
+
+add_executable(offboard_control_ID_KF_yaw
+  src/offboard_control_ID_KF_yaw.cpp
+)
+ament_target_dependencies(offboard_control_ID_KF_yaw
+    rclcpp
+    px4_msgs
+    std_msgs
+    iii_interfaces
+)
+install(TARGETS offboard_control_ID_KF_yaw DESTINATION lib/${PROJECT_NAME})
+
+
+
 function(custom_executable target)
   add_executable(${target} src/${target}.cpp)
   ament_target_dependencies(${target}
