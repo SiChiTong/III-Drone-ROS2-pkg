@@ -135,6 +135,7 @@ ament_target_dependencies(offboard_control_ID_midflight
     px4_msgs
     std_msgs
     iii_interfaces
+    geometry_msgs
 )
 install(TARGETS offboard_control_ID_midflight DESTINATION lib/${PROJECT_NAME})
 
@@ -147,9 +148,21 @@ ament_target_dependencies(offboard_control_ID_KF_yaw
     px4_msgs
     std_msgs
     iii_interfaces
+    geometry_msgs
 )
 install(TARGETS offboard_control_ID_KF_yaw DESTINATION lib/${PROJECT_NAME})
 
+
+add_executable(offboard_control_magnetometers
+  src/offboard_control_magnetometers.cpp
+)
+ament_target_dependencies(offboard_control_magnetometers
+    rclcpp
+    px4_msgs
+    std_msgs
+    geometry_msgs
+)
+install(TARGETS offboard_control_magnetometers DESTINATION lib/${PROJECT_NAME})
 
 
 function(custom_executable target)
