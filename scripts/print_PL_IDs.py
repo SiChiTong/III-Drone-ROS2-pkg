@@ -264,6 +264,7 @@ class IdDrawer(Node):
 
         print("\nEnter powerline ID")
         print("Press 'del' to clear or 'enter' to submit sequence\n")
+        print("Press 'i' to print current powerline estimates\n")
 
         listen_keyboard(
             on_press=self.press,

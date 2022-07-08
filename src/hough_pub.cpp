@@ -55,7 +55,7 @@ class HoughTFPub : public rclcpp::Node
 						
 
 			camera_subscription_ = this->create_subscription<sensor_msgs::msg::Image>(
-				"/cable_camera/image_raw",	10,
+				"/image_raw",	10,
 				std::bind(&HoughTFPub::OnCameraMsg, this, std::placeholders::_1));
 
 
