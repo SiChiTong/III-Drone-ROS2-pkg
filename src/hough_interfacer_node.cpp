@@ -174,7 +174,9 @@ int HoughInterfacerNode::callHoughIP(uint8_t *ptr_img_data_in, uint8_t *ptr_line
 
     RCLCPP_DEBUG(this->get_logger(), "Polling for houghlines_accel IP ready");
 
-    while(!XHoughlines_accel_IsReady(&xhl));
+    while(!XHoughlines_accel_IsReady(&xhl)) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
 
     length = XHoughlines_accel_Write_img_in_Bytes(&xhl, 0, (char *)ptr_img_data_in, SIZE);
 
@@ -190,7 +192,9 @@ int HoughInterfacerNode::callHoughIP(uint8_t *ptr_img_data_in, uint8_t *ptr_line
 
     RCLCPP_DEBUG(this->get_logger(), "Polling for houghlines_accel IP idle");
 
-    while(!XHoughlines_accel_IsIdle(&xhl));
+    while(!XHoughlines_accel_IsIdle(&xhl)) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
 
     RCLCPP_DEBUG(this->get_logger(), "Starting houghlines_accel IP");
 
@@ -198,7 +202,9 @@ int HoughInterfacerNode::callHoughIP(uint8_t *ptr_img_data_in, uint8_t *ptr_line
 
     RCLCPP_DEBUG(this->get_logger(), "Started houghlines_accel IP");
 
-    while(!XHoughlines_accel_IsIdle(&xhl));
+    while(!XHoughlines_accel_IsIdle(&xhl)) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
 
     RCLCPP_DEBUG(this->get_logger(), "IP houghlines_accel is idle, reading out bytes");
 
