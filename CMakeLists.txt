@@ -192,6 +192,34 @@ custom_executable(hough_pub)
 #custom_executable(img_decompress)
 
 
+
+
+
+
+
+
+add_executable(HW_hough_timing
+  src/HW_hough_timing.cpp
+  include/hough-accel-ip/ip/drivers/houghlines_accel_v1_0/src/xhoughlines_accel_linux.c
+  include/hough-accel-ip/ip/drivers/houghlines_accel_v1_0/src/xhoughlines_accel.c
+)
+ament_target_dependencies(HW_hough_timing
+  rclcpp
+  sensor_msgs
+  OpenCV
+  cv_bridge
+  iii_interfaces
+)
+install(TARGETS HW_hough_timing DESTINATION lib/${PROJECT_NAME})
+
+custom_executable(SW_hough_timing)
+
+
+
+
+
+
+
 ############
 # Install ##
 ############
