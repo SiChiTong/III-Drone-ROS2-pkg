@@ -262,7 +262,7 @@ void PowerlineMapperNode::publishPowerline() {
 
         //individual_pl_pubs_->at(i)->publish(pose_stamped_msg);
 
-        msg.poses.push_back(pose_msg);
+        msg.poses.push_back(pose_stamped_msg);
         msg.ids.push_back(lines[i].GetId());
 
         *(reinterpret_cast<float*>(pcl2_ptr + 0)) = point(0);
