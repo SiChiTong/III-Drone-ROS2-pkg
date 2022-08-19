@@ -42,6 +42,9 @@ PowerlineDirectionComputerNode::PowerlineDirectionComputerNode(const std::string
     tf_buffer_ = std::make_unique<tf2_ros::Buffer>(this->get_clock());
     transform_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
 
+	rclcpp::Rate rate(1000ms);
+	rate.sleep();
+
     // Call on_timer function every second
     drone_tf_timer_ = this->create_wall_timer(
       25ms, std::bind(&PowerlineDirectionComputerNode::odometryCallback, this));
@@ -119,7 +122,7 @@ void PowerlineDirectionComputerNode::predict() {
     kf_mutex_.lock(); {
 
         //file << "Previous direction est: " << std::to_string(pl_angle_est.state_est) << std::endl;
-        pl_angle_est.state_est = pl_angle_est.state_est - delta_yaw;
+        pl_angle_est.state_est = pl_angle_est.state_est + delta_yaw;
         pl_angle_est.var_est += q_;
 
         //file << "New direction est before backmapping: " << std::to_string(pl_angle_est.state_est) << std::endl;
@@ -133,7 +136,7 @@ void PowerlineDirectionComputerNode::predict() {
     orientation_t pl_dir_eul(
         0,
         //-inv_drone_quat(1),
-        -inv_drone_eul(1),
+        inv_drone_eul(1),
         pl_dir_yaw
     );
 

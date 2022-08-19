@@ -34,10 +34,6 @@ PowerlineMapperNode::PowerlineMapperNode(const std::string & node_name, const st
     tf_buffer_ = std::make_unique<tf2_ros::Buffer>(this->get_clock());
     transform_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
 
-    // Call on_timer function every second
-    drone_tf_timer_ = this->create_wall_timer(
-      10ms, std::bind(&PowerlineMapperNode::odometryCallback, this));
-
     geometry_msgs::msg::TransformStamped mmw_tf;
 
     while(true) {
@@ -51,11 +47,19 @@ PowerlineMapperNode::PowerlineMapperNode(const std::string & node_name, const st
 
         } catch(tf2::TransformException & ex) {
 
-            RCLCPP_INFO(this->get_logger(), "Could not get mmWave transform, frame drone to iwr6843_frame, trying again...");
+            RCLCPP_DEBUG(this->get_logger(), "Could not get mmWave transform, frame drone to iwr6843_frame, trying again...");
 
         }
 
     }
+
+	rclcpp::Rate rate(1000ms);
+	rate.sleep();
+
+    // Call on_timer function every second
+    drone_tf_timer_ = this->create_wall_timer(
+      10ms, std::bind(&PowerlineMapperNode::odometryCallback, this));
+
 
     quat_t mmw_quat(
         mmw_tf.transform.rotation.w,
