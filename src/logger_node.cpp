@@ -276,7 +276,7 @@ class IIILoggerNode : public rclcpp::Node
 				std::cout << "Save image as " << logfiles_dir_ + img_filename << std::endl;
 			}
 
-			*odom_ofs_ << time << "," << odom_.x << "," << odom_.y << "," << odom_.z << "," << odom_.q[0] << "," << odom_.q[1] << "," << odom_.q[2] << "," << odom_.q[3] << std::endl;
+			*odom_ofs_ << time << "," << odom_.position[0] << "," << odom_.position[1] << "," << odom_.position[2] << "," << odom_.q[0] << "," << odom_.q[1] << "," << odom_.q[2] << "," << odom_.q[3] << std::endl;
 
 			*cable_yaw_ofs_ << time << "," << cable_yaw_.angle << std::endl;
 
