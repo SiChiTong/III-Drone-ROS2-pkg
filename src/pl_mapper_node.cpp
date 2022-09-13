@@ -237,10 +237,10 @@ void PowerlineMapperNode::publishPowerline() {
     // quat_msg.y = plane_quat(2);
     // quat_msg.z = plane_quat(3);
     
-    // quat_msg.w = pl_direction_(0); ////////
-    // quat_msg.x = pl_direction_(1); ////////
-    // quat_msg.y = pl_direction_(2); ////////
-    // quat_msg.z = pl_direction_(3); ////////
+    quat_msg.w = pl_direction_(0); ////////
+    quat_msg.x = pl_direction_(1); ////////
+    quat_msg.y = pl_direction_(2); ////////
+    quat_msg.z = pl_direction_(3); ////////
 
     for (int i = 0; i < lines.size(); i++) {
         auto point_msg = geometry_msgs::msg::Point();
