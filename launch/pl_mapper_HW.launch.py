@@ -19,7 +19,8 @@ def generate_launch_description():
         package="iii_drone",
         executable="hough_interfacer",
         remappings=[
-            ("/cable_yaw_angle", "/hough_transformer/cable_yaw_angle")
+            ("/cable_yaw_angle", "/hough_transformer/cable_yaw_angle"),
+            ("/image_raw", "/cable_camera/image_raw")
         ],
         parameters=[config]
     )
