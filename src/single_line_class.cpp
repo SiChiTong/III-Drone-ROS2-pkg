@@ -61,7 +61,7 @@ point_t SingleLine::GetPoint() {
 
 bool SingleLine::IsAlive() {
 
-    bool in_FOV = estimates[2].state_est > 0.25 && estimates[2].state_est < 20;
+    bool in_FOV = estimates[2].state_est > 0.5 && estimates[2].state_est < 20;
 
     if (in_FOV && --alive_cnt_ <= alive_cnt_low_thresh_) {
 

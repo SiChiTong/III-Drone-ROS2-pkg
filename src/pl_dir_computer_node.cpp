@@ -42,6 +42,9 @@ PowerlineDirectionComputerNode::PowerlineDirectionComputerNode(const std::string
     tf_buffer_ = std::make_unique<tf2_ros::Buffer>(this->get_clock());
     transform_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
 
+	rclcpp::Rate rate(1000ms);
+	rate.sleep();
+
     // Call on_timer function every second
     drone_tf_timer_ = this->create_wall_timer(
       25ms, std::bind(&PowerlineDirectionComputerNode::odometryCallback, this));
@@ -91,7 +94,7 @@ void PowerlineDirectionComputerNode::odometryCallback() {
 
 void PowerlineDirectionComputerNode::plDirectionCallback(const iii_interfaces::msg::PowerlineDirection::SharedPtr msg) {
 
-    RCLCPP_DEBUG(this->get_logger(), "Received powerline direction message");
+    //RCLCPP_INFO(this->get_logger(), "Received powerline direction message");
 
     float pl_angle = msg->angle;
 
@@ -111,33 +114,50 @@ void PowerlineDirectionComputerNode::predict() {
 
     orientation_t delta_drone_eul = quatToEul(delta_drone_quat);
 
+
+
+    orientation_t drone_eul = quatToEul(drone_quat_);
+
     //file << "delta_drone_eul: [" << std::to_string(delta_drone_eul(0)) << ", " << std::to_string(delta_drone_eul(1)) << ", " << std::to_string(delta_drone_eul(2)) << "]" << std::endl;
 
     float delta_yaw = delta_drone_eul(2);
     float pl_dir_yaw;
 
+    quat_t pl_dir;
+
     kf_mutex_.lock(); {
 
         //file << "Previous direction est: " << std::to_string(pl_angle_est.state_est) << std::endl;
-        pl_angle_est.state_est = pl_angle_est.state_est - delta_yaw;
+        //pl_angle_est.state_est = pl_angle_est.state_est + delta_yaw;
+        float pl_dir_yaw_world = pl_angle_est.state_est - drone_eul(2) + delta_yaw;
+
+        //orientation_t pl_eul_world(0,0,pl_dir_yaw_world);
+        orientation_t pl_eul_world(0,0,pl_dir_yaw_world);
+        quat_t pl_quat_world = eulToQuat(pl_eul_world);
+
+        pl_dir = quatMultiply(drone_quat_,pl_quat_world);
+
+        orientation_t pl_eul_drone = quatToEul(pl_dir);
+
         pl_angle_est.var_est += q_;
 
         //file << "New direction est before backmapping: " << std::to_string(pl_angle_est.state_est) << std::endl;
-        pl_angle_est.state_est = backmapAngle(pl_angle_est.state_est);
+        //pl_angle_est.state_est = backmapAngle(pl_angle_est.state_est);
+        pl_angle_est.state_est = backmapAngle(pl_eul_drone(2));
         //file << "New direction est after backmapping: " << std::to_string(pl_angle_est.state_est) << std::endl << std::endl;
 
-        pl_dir_yaw = pl_angle_est.state_est;
+        //pl_dir_yaw = pl_angle_est.state_est;
 
     } kf_mutex_.unlock();
 
-    orientation_t pl_dir_eul(
-        0,
-        //-inv_drone_quat(1),
-        -inv_drone_eul(1),
-        pl_dir_yaw
-    );
+    //orientation_t pl_dir_eul(
+    //    inv_drone_eul(0),
+    //    //-inv_drone_quat(1),
+    //    inv_drone_eul(1),
+    //    pl_dir_yaw
+    //);
 
-    quat_t pl_dir = eulToQuat(pl_dir_eul);
+    //quat_t pl_dir = eulToQuat(pl_dir_eul);
 
     direction_mutex_.lock(); {
 
@@ -153,7 +173,7 @@ void PowerlineDirectionComputerNode::predict() {
 
 void PowerlineDirectionComputerNode::update(float pl_angle) {
 
-    pl_angle = 2*M_PI - pl_angle;
+    pl_angle = - pl_angle;
 
     //file_mutex.lock();
 
@@ -164,7 +184,13 @@ void PowerlineDirectionComputerNode::update(float pl_angle) {
         //file << "Received angle: " << std::to_string(pl_angle) << std::endl;
         //file << "Current est angle: " << std::to_string(pl_angle_est.state_est) << std::endl;
 
+
+        float pl_angle_tmp = pl_angle;
+
         pl_angle = mapAngle(pl_angle_est.state_est, pl_angle);
+        //RCLCPP_INFO(this->get_logger(), "pl_angle: %f, state_est: %f, mapped pl_angle: %f", pl_angle_tmp, pl_angle_est.state_est, pl_angle);
+        //RCLCPP_INFO(this->get_logger(), "pl_angle: %f", pl_angle);
+        //RCLCPP_INFO(this->get_logger(), "pl_angle_est a priori: %f", pl_angle_est.state_est);
 
         //file << "Received angle after mapping: " << std::to_string(pl_angle) << std::endl;
 
@@ -179,6 +205,8 @@ void PowerlineDirectionComputerNode::update(float pl_angle) {
         //file << "New est angle: " << std::to_string(pl_angle_est.state_est) << std::endl;
 
         pl_angle_est.state_est = backmapAngle(pl_angle_est.state_est);
+
+        //RCLCPP_INFO(this->get_logger(), "pl_angle_est a postiori: %f", pl_angle_est.state_est);
 
         //file << "New est angle after backmapping: " << std::to_string(pl_angle_est.state_est) << std::endl << std::endl;
 
@@ -231,7 +259,7 @@ float PowerlineDirectionComputerNode::mapAngle(float curr_angle, float new_angle
 
     //file << "Mapping angle: " << std::to_string(new_angle) << std::endl;
 
-    float angle_candidates[4];
+    float angle_candidates[5];
     angle_candidates[0] = new_angle;
 
     if (new_angle > 0) {
@@ -239,12 +267,14 @@ float PowerlineDirectionComputerNode::mapAngle(float curr_angle, float new_angle
         angle_candidates[1] = new_angle - M_PI;
         angle_candidates[2] = new_angle - 2*M_PI;
         angle_candidates[3] = new_angle + M_PI;
+        angle_candidates[4] = new_angle + 2*M_PI;
 
     } else {
 
         angle_candidates[1] = new_angle + M_PI;
         angle_candidates[2] = new_angle + 2*M_PI;
         angle_candidates[3] = new_angle - M_PI;
+        angle_candidates[4] = new_angle - 2*M_PI;
 
     }
 
@@ -253,7 +283,7 @@ float PowerlineDirectionComputerNode::mapAngle(float curr_angle, float new_angle
     float best_angle = angle_candidates[0];
     float best_angle_diff = abs(angle_candidates[0]-curr_angle);
 
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < 5; i++) {
 
         float diff = abs(angle_candidates[i]-curr_angle);
         if (diff < best_angle_diff) {
