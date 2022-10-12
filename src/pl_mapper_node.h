@@ -21,9 +21,11 @@
 #include <geometry_msgs/msg/pose.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/vector3_stamped.hpp>
+#include <geometry_msgs/msg/point_stamped.hpp>
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/buffer.h>
 #include <tf2/exceptions.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 #include "iii_interfaces/msg/powerline_direction.hpp"
 #include "iii_interfaces/msg/powerline.hpp"

@@ -145,7 +145,7 @@ void LidarToMmwave::lidar_to_mmwave_pcl(const sensor_msgs::msg::LaserScan::Share
 		// pcl_y.push_back(y);
 		// pcl_z.push_back(z);
 		pcl_x.push_back(z);
-		pcl_y.push_back(-x);
+		pcl_y.push_back(x);
 		pcl_z.push_back(-y);
 	}
 

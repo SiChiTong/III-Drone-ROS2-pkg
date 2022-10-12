@@ -12,6 +12,18 @@
 #include <vector>
 #include <rclcpp/rclcpp.hpp>
 
+#include <geometry_msgs/msg/point.hpp>
+#include <geometry_msgs/msg/quaternion.hpp>
+#include <geometry_msgs/msg/quaternion_stamped.hpp>
+#include <geometry_msgs/msg/pose.hpp>
+#include <geometry_msgs/msg/pose_stamped.hpp>
+#include <geometry_msgs/msg/vector3_stamped.hpp>
+#include <geometry_msgs/msg/point_stamped.hpp>
+#include <tf2_ros/transform_listener.h>
+#include <tf2_ros/buffer.h>
+#include <tf2/exceptions.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+
 #include "geometry.h"
 
 /*****************************************************************************/
@@ -37,12 +49,15 @@ public:
 
     SingleLine GetCopy();
     point_t GetPoint();
+    void SetPoint(point_t point);
 
-    bool IsAlive();
+    bool IsAlive(std::unique_ptr<tf2_ros::Buffer> &tf_buffer, float min_point_dist, float max_point_dist, float view_cone_slope);
     bool IsVisible();
+    bool IsInFOV(point_t point, float min_point_dist, float max_point_dist, float view_cone_slope);
+    bool IsInFOV(std::unique_ptr<tf2_ros::Buffer> &tf_buffer, float min_point_dist, float max_point_dist, float view_cone_slope);
 
     void Update(point_t point);
-    void Predict(vector_t delta_position, quat_t delta_quat, plane_t projection_plane);
+    void Predict(vector_t delta_position, quat_t delta_quat, plane_t projection_plane, std::unique_ptr<tf2_ros::Buffer> &tf_buffer);
 
     int GetId();
 

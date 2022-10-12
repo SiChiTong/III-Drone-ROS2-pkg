@@ -55,6 +55,12 @@ PowerlineDirectionComputerNode::PowerlineDirectionComputerNode(const std::string
 
 void PowerlineDirectionComputerNode::odometryCallback() {
 
+    if (!received_angle) {
+
+        return;
+
+    }
+
     RCLCPP_DEBUG(this->get_logger(), "Fetching odometry transform");
 
     geometry_msgs::msg::TransformStamped tf;
@@ -184,33 +190,45 @@ void PowerlineDirectionComputerNode::update(float pl_angle) {
         //file << "Received angle: " << std::to_string(pl_angle) << std::endl;
         //file << "Current est angle: " << std::to_string(pl_angle_est.state_est) << std::endl;
 
-
         float pl_angle_tmp = pl_angle;
 
         pl_angle = mapAngle(pl_angle_est.state_est, pl_angle);
-        //RCLCPP_INFO(this->get_logger(), "pl_angle: %f, state_est: %f, mapped pl_angle: %f", pl_angle_tmp, pl_angle_est.state_est, pl_angle);
-        //RCLCPP_INFO(this->get_logger(), "pl_angle: %f", pl_angle);
-        //RCLCPP_INFO(this->get_logger(), "pl_angle_est a priori: %f", pl_angle_est.state_est);
 
-        //file << "Received angle after mapping: " << std::to_string(pl_angle) << std::endl;
+        if (!received_angle) {
 
-        float y_bar = pl_angle - pl_angle_est.state_est;
-        float s = pl_angle_est.var_est + r_;
+            pl_angle_est.state_est = backmapAngle(pl_angle);
 
-        float k = pl_angle_est.var_est / s;
+            received_angle = true;
 
-        pl_angle_est.state_est += k*y_bar;
-        pl_angle_est.var_est *= 1-k;
+        } else {
 
-        //file << "New est angle: " << std::to_string(pl_angle_est.state_est) << std::endl;
+            //RCLCPP_INFO(this->get_logger(), "pl_angle: %f, state_est: %f, mapped pl_angle: %f", pl_angle_tmp, pl_angle_est.state_est, pl_angle);
+            //RCLCPP_INFO(this->get_logger(), "pl_angle: %f", pl_angle);
+            //RCLCPP_INFO(this->get_logger(), "pl_angle_est a priori: %f", pl_angle_est.state_est);
 
-        pl_angle_est.state_est = backmapAngle(pl_angle_est.state_est);
+            //file << "Received angle after mapping: " << std::to_string(pl_angle) << std::endl;
 
-        //RCLCPP_INFO(this->get_logger(), "pl_angle_est a postiori: %f", pl_angle_est.state_est);
+            float y_bar = pl_angle - pl_angle_est.state_est;
+            float s = pl_angle_est.var_est + r_;
 
-        //file << "New est angle after backmapping: " << std::to_string(pl_angle_est.state_est) << std::endl << std::endl;
+            float k = pl_angle_est.var_est / s;
 
-        //file << std::to_string(pl_angle_est.state_est) << std::endl;
+            pl_angle_est.state_est += k*y_bar;
+            pl_angle_est.var_est *= 1-k;
+
+            //file << "New est angle: " << std::to_string(pl_angle_est.state_est) << std::endl;
+
+            pl_angle_est.state_est = backmapAngle(pl_angle_est.state_est);
+
+            //RCLCPP_INFO(this->get_logger(), "pl_angle_est a postiori: %f", pl_angle_est.state_est);
+
+            //file << "New est angle after backmapping: " << std::to_string(pl_angle_est.state_est) << std::endl << std::endl;
+
+            //file << std::to_string(pl_angle_est.state_est) << std::endl;
+
+        }
+
+
 
     } kf_mutex_.unlock();
 

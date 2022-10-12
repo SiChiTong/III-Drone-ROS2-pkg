@@ -26,5 +26,5 @@ def generate_launch_description():
     return LaunchDescription([
         hough,
         pl_dir_computer,
-        pl_mapper
+        #pl_mapper
     ])
