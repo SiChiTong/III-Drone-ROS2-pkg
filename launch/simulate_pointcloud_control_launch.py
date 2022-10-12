@@ -11,7 +11,7 @@ def generate_launch_description():
         Node(
             package='iii_drone',
             #namespace='turtlesim2',
-            executable='lidar_to_mmwave',
-            name='lidar_to_mmwave'
+            executable='depth_cam_to_mmwave',
+            name='depth_cam_to_mmwave'
         )
     ])
