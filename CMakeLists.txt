@@ -34,8 +34,12 @@ find_package(geometry_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(cv_bridge REQUIRED)
+#find_package(PCL 1.3 REQUIRED COMPONENTS common io)
+find_package(pcl_ros REQUIRED)
+find_package(pcl_conversions REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
 find_package(image_transport REQUIRED)
 
 add_executable(hough_interfacer
@@ -80,6 +84,7 @@ ament_target_dependencies(pl_mapper
   sensor_msgs
   tf2
   tf2_ros
+  tf2_geometry_msgs
 )
 install(TARGETS pl_mapper DESTINATION lib/${PROJECT_NAME})
 
@@ -192,8 +197,14 @@ custom_executable(hough_pub)
 #custom_executable(img_decompress)
 
 
-
-
+add_executable(depth_cam_to_mmwave src/depth_cam_to_mmwave.cpp)
+ament_target_dependencies(depth_cam_to_mmwave
+  rclcpp
+  sensor_msgs
+  pcl_ros
+  pcl_conversions
+)
+install(TARGETS depth_cam_to_mmwave DESTINATION lib/${PROJECT_NAME})
 
 
 
