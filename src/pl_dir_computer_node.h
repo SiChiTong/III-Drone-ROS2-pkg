@@ -56,6 +56,8 @@ private:
     rclcpp::TimerBase::SharedPtr drone_tf_timer_{nullptr};
 
     bool received_angle = false;
+    bool received_first_quat = false;
+    bool received_second_quat = false;
 
     quat_t drone_quat_, last_drone_quat_;
 
@@ -63,7 +65,7 @@ private:
 
     quat_t pl_direction_;
 
-    kf_est_t pl_angle_est;
+    kf_est_t pl_angle_est[3];
 
     std::mutex direction_mutex_;
     std::mutex kf_mutex_;

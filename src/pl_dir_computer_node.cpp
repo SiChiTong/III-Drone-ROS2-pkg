@@ -11,11 +11,10 @@
 PowerlineDirectionComputerNode::PowerlineDirectionComputerNode(const std::string & node_name, const std::string & node_namespace) : 
         rclcpp::Node(node_name, node_namespace) {
 
-    r_ = 0.8;
+    r_ = 0.1;
     q_ = 1-r_;
 
-    pl_angle_est.state_est = 0;
-    pl_angle_est.var_est = 1;
+    for (int i = 0; i < 3; i++) { pl_angle_est[i].state_est = 0; pl_angle_est[i].var_est = 1; }
 
     pl_direction_(0) = 1;
     pl_direction_(1) = 0;
@@ -55,12 +54,6 @@ PowerlineDirectionComputerNode::PowerlineDirectionComputerNode(const std::string
 
 void PowerlineDirectionComputerNode::odometryCallback() {
 
-    if (!received_angle) {
-
-        return;
-
-    }
-
     RCLCPP_DEBUG(this->get_logger(), "Fetching odometry transform");
 
     geometry_msgs::msg::TransformStamped tf;
@@ -92,6 +85,26 @@ void PowerlineDirectionComputerNode::odometryCallback() {
     last_drone_quat_ = drone_quat_;
     drone_quat_ = quat;
 
+    if (!received_first_quat) {
+
+        received_first_quat = true;
+        return;
+
+    }
+
+    if (!received_second_quat) {
+
+        received_second_quat = true;
+        return;
+
+    }
+
+    if (!received_angle) {
+
+        return;
+
+    }
+
     predict();
 
     publishPowerlineDirection();
@@ -109,71 +122,36 @@ void PowerlineDirectionComputerNode::plDirectionCallback(const iii_interfaces::m
 
 void PowerlineDirectionComputerNode::predict() {
 
-    //file_mutex.lock();
-
-    //file << "Prediction step:" << std::endl;
-
-    quat_t inv_last_drone_quat = quatInv(last_drone_quat_);
     quat_t inv_drone_quat = quatInv(drone_quat_);
-    quat_t delta_drone_quat = quatMultiply(drone_quat_, inv_last_drone_quat);
-    orientation_t inv_drone_eul = quatToEul(inv_drone_quat);
+    quat_t inv_last_drone_quat = quatInv(last_drone_quat_);
 
-    orientation_t delta_drone_eul = quatToEul(delta_drone_quat);
+    // quat_t delta_drone_quat = quatMultiply(drone_quat_, last_drone_quat_);
+    quat_t delta_drone_quat = quatMultiply(inv_drone_quat, last_drone_quat_);           /// Works!!!!! #impericalmethod
+    // quat_t delta_drone_quat = quatMultiply(drone_quat_, inv_last_drone_quat);
+    // quat_t delta_drone_quat = quatMultiply(inv_drone_quat, inv_last_drone_quat);
+    // quat_t delta_drone_quat = quatMultiply(last_drone_quat_, drone_quat_);
+    // quat_t delta_drone_quat = quatMultiply(inv_last_drone_quat, drone_quat_);
+    // quat_t delta_drone_quat = quatMultiply(last_drone_quat_, inv_drone_quat);
+    // quat_t delta_drone_quat = quatMultiply(inv_last_drone_quat, inv_drone_quat);
 
-
-
-    orientation_t drone_eul = quatToEul(drone_quat_);
-
-    //file << "delta_drone_eul: [" << std::to_string(delta_drone_eul(0)) << ", " << std::to_string(delta_drone_eul(1)) << ", " << std::to_string(delta_drone_eul(2)) << "]" << std::endl;
-
-    float delta_yaw = delta_drone_eul(2);
-    float pl_dir_yaw;
-
-    quat_t pl_dir;
-
-    kf_mutex_.lock(); {
-
-        //file << "Previous direction est: " << std::to_string(pl_angle_est.state_est) << std::endl;
-        //pl_angle_est.state_est = pl_angle_est.state_est + delta_yaw;
-        float pl_dir_yaw_world = pl_angle_est.state_est - drone_eul(2) + delta_yaw;
-
-        //orientation_t pl_eul_world(0,0,pl_dir_yaw_world);
-        orientation_t pl_eul_world(0,0,pl_dir_yaw_world);
-        quat_t pl_quat_world = eulToQuat(pl_eul_world);
-
-        pl_dir = quatMultiply(drone_quat_,pl_quat_world);
-
-        orientation_t pl_eul_drone = quatToEul(pl_dir);
-
-        pl_angle_est.var_est += q_;
-
-        //file << "New direction est before backmapping: " << std::to_string(pl_angle_est.state_est) << std::endl;
-        //pl_angle_est.state_est = backmapAngle(pl_angle_est.state_est);
-        pl_angle_est.state_est = backmapAngle(pl_eul_drone(2));
-        //file << "New direction est after backmapping: " << std::to_string(pl_angle_est.state_est) << std::endl << std::endl;
-
-        //pl_dir_yaw = pl_angle_est.state_est;
-
-    } kf_mutex_.unlock();
-
-    //orientation_t pl_dir_eul(
-    //    inv_drone_eul(0),
-    //    //-inv_drone_quat(1),
-    //    inv_drone_eul(1),
-    //    pl_dir_yaw
-    //);
-
-    //quat_t pl_dir = eulToQuat(pl_dir_eul);
+    quat_t inv_delta_drone_quat = quatInv(delta_drone_quat);
 
     direction_mutex_.lock(); {
 
-        pl_direction_ = pl_dir;
+        kf_mutex_.lock(); {
+
+            // pl_direction_ = quatMultiply(delta_drone_quat, pl_direction_);
+            // pl_direction_ = quatMultiply(inv_delta_drone_quat, pl_direction_);
+            // pl_direction_ = quatMultiply(pl_direction_, delta_drone_quat);
+            pl_direction_ = quatMultiply(pl_direction_, inv_delta_drone_quat);          //// WORKS!!! #impericalmethodAKAnoideawhyitworks
+
+            orientation_t eul = quatToEul(pl_direction_);
+
+            for (int i = 0; i < 3; i++) { pl_angle_est[i].var_est += q_; pl_angle_est[i].state_est = backmapAngle(eul(i)); }
+
+        } kf_mutex_.unlock();
 
     } direction_mutex_.unlock();
-
-    //file << std::to_string(pl_dir_yaw) << std::endl;
-
-    //file_mutex.unlock();
 
 }
 
@@ -181,58 +159,88 @@ void PowerlineDirectionComputerNode::update(float pl_angle) {
 
     pl_angle = - pl_angle;
 
-    //file_mutex.lock();
+    quat_t W_Q_D = drone_quat_;
 
-    //file << "Update step:" << std::endl;
+    direction_mutex_.lock(); {
 
-    kf_mutex_.lock(); {
+        kf_mutex_.lock(); {
 
-        //file << "Received angle: " << std::to_string(pl_angle) << std::endl;
-        //file << "Current est angle: " << std::to_string(pl_angle_est.state_est) << std::endl;
+            rotation_matrix_t D_R_W = quatToMat(W_Q_D).transpose();
 
-        float pl_angle_tmp = pl_angle;
+            vector_t unit_x(1,0,0);
+            orientation_t pl_eul(0,0,pl_angle);
 
-        pl_angle = mapAngle(pl_angle_est.state_est, pl_angle);
+            vector_t D_v = eulToR(pl_eul) * unit_x;
 
-        if (!received_angle) {
+            vector_t W_v(
+                -(D_v(1)*D_R_W(0,1) - D_v(0)*D_R_W(1,1))/(D_R_W(0,0)*D_R_W(1,1) - D_R_W(0,1)*D_R_W(1,0)),
+                (D_v(1)*D_R_W(0,0) - D_v(0)*D_R_W(1,0))/(D_R_W(0,0)*D_R_W(1,1) - D_R_W(0,1)*D_R_W(1,0)),
+                0
+            );
 
-            pl_angle_est.state_est = backmapAngle(pl_angle);
+            pl_angle = atan2(W_v[1], W_v[0]);
 
-            received_angle = true;
+            W_v /= W_v.norm();
 
-        } else {
+            orientation_t pi_2_yaw(0,0,M_PI_2);
 
-            //RCLCPP_INFO(this->get_logger(), "pl_angle: %f, state_est: %f, mapped pl_angle: %f", pl_angle_tmp, pl_angle_est.state_est, pl_angle);
-            //RCLCPP_INFO(this->get_logger(), "pl_angle: %f", pl_angle);
-            //RCLCPP_INFO(this->get_logger(), "pl_angle_est a priori: %f", pl_angle_est.state_est);
+            vector_t W_P_x = W_v;
+            vector_t W_P_y = eulToR(pi_2_yaw)*W_P_x;
+            vector_t W_P_z(0,0,1);
 
-            //file << "Received angle after mapping: " << std::to_string(pl_angle) << std::endl;
+            rotation_matrix_t W_R_P;
 
-            float y_bar = pl_angle - pl_angle_est.state_est;
-            float s = pl_angle_est.var_est + r_;
+            for (int i = 0; i < 3; i++) {
 
-            float k = pl_angle_est.var_est / s;
+                W_R_P(i,0) = W_P_x(i);
+                W_R_P(i,1) = W_P_y(i);
+                W_R_P(i,2) = W_P_z(i);
 
-            pl_angle_est.state_est += k*y_bar;
-            pl_angle_est.var_est *= 1-k;
+            }
 
-            //file << "New est angle: " << std::to_string(pl_angle_est.state_est) << std::endl;
+            quat_t W_Q_P = matToQuat(W_R_P);
+            quat_t D_Q_W = quatInv(W_Q_D);
+            quat_t D_Q_P = quatMultiply(D_Q_W, W_Q_P);
 
-            pl_angle_est.state_est = backmapAngle(pl_angle_est.state_est);
+            orientation_t D_eul_P = quatToEul(D_Q_P);
 
-            //RCLCPP_INFO(this->get_logger(), "pl_angle_est a postiori: %f", pl_angle_est.state_est);
+            for (int i = 0; i < 3; i++) {
 
-            //file << "New est angle after backmapping: " << std::to_string(pl_angle_est.state_est) << std::endl << std::endl;
+                float angle = mapAngle(pl_angle_est[i].state_est, D_eul_P(i));
 
-            //file << std::to_string(pl_angle_est.state_est) << std::endl;
+                if (!received_angle) {
 
-        }
+                    pl_angle_est[i].state_est = backmapAngle(angle);
 
+                    if (i==3) {
 
+                        received_angle = true;
 
-    } kf_mutex_.unlock();
+                    }
 
-    //file_mutex.unlock();
+                } else {
+
+                    float y_bar = angle - pl_angle_est[i].state_est;
+                    float s = pl_angle_est[i].var_est + r_;
+
+                    float k = pl_angle_est[i].var_est / s;
+
+                    pl_angle_est[i].state_est += k*y_bar;
+                    pl_angle_est[i].var_est *= 1-k;
+
+                    pl_angle_est[i].state_est = backmapAngle(pl_angle_est[i].state_est);
+
+                }
+
+                D_Q_P(i) = pl_angle_est[i].state_est;
+
+            }
+
+            pl_direction_ = eulToQuat(D_Q_P);
+
+        } kf_mutex_.unlock();
+
+    } direction_mutex_.unlock();
 
 }
 
