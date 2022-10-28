@@ -65,6 +65,8 @@ private:
 
     quat_t pl_direction_;
 
+    float W_pl_yaw_ = 0.;
+
     kf_est_t pl_angle_est[3];
 
     std::mutex direction_mutex_;
@@ -79,6 +81,7 @@ private:
     void publishPowerlineDirection();
 
     float mapAngle(float curr_angle, float new_angle);
+    float mapAngle2(float curr_angle, float new_angle);
     float backmapAngle(float angle);
 
     //std::ofstream file;

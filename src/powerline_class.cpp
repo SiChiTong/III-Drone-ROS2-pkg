@@ -118,29 +118,29 @@ point_t Powerline::UpdateLine(point_t point) {
 
     }
 
-    RCLCPP_INFO(logger_, "Updating line");
+    //RCLCPP_INFO(logger_, "Updating line");
 
     point_t projected_point = projectPoint(point);
 
-    RCLCPP_INFO(logger_, "Point: [%f, %f, %f] \t projected point: [%f, %f, %f]", point(0), point(1), point(2), projected_point(0), projected_point(1), projected_point(2));
+    //RCLCPP_INFO(logger_, "Point: [%f, %f, %f] \t projected point: [%f, %f, %f]", point(0), point(1), point(2), projected_point(0), projected_point(1), projected_point(2));
 
     int match_index = findMatchingLine(projected_point);
 
     if (match_index == -1) {
 
-        RCLCPP_INFO(logger_, "No matching line found");
+        //RCLCPP_INFO(logger_, "No matching line found");
 
         lines_mutex_.lock(); {
 
             int new_id = id_cnt_++;
 
-            RCLCPP_INFO(logger_, "Creating new line");
+            //RCLCPP_INFO(logger_, "Creating new line");
 
             auto new_line = SingleLine(new_id, projected_point, r_, q_, 
                     logger_, alive_cnt_low_thresh_, alive_cnt_high_thresh_, alive_cnt_ceiling_);
 
             for (int i = 0; i < lines_.size(); i++) {
-                // RCLCPP_INFO(logger_, "Creating inter line position");
+                // //RCLCPP_INFO(logger_, "Creating inter line position");
 
                 inter_line_positions_t ilp;
                 ilp.line_id_1 = lines_[i].GetId();
@@ -151,7 +151,7 @@ point_t Powerline::UpdateLine(point_t point) {
             }
 
 
-            RCLCPP_INFO(logger_, "Pushing back new line");
+            //RCLCPP_INFO(logger_, "Pushing back new line");
             lines_.push_back(new_line);
 
         } lines_mutex_.unlock();
@@ -160,7 +160,7 @@ point_t Powerline::UpdateLine(point_t point) {
 
         lines_mutex_.lock(); {
 
-            RCLCPP_INFO(logger_, "Found matching line, updating the line");
+            //RCLCPP_INFO(logger_, "Found matching line, updating the line");
 
             lines_[match_index].Update(projected_point);
 
@@ -221,7 +221,7 @@ void Powerline::UpdateDirection(quat_t pl_direction) {
 void Powerline::UpdateOdometry(point_t position, quat_t quat, 
             std::unique_ptr<tf2_ros::Buffer> &tf_buffer, float min_point_dist, float max_point_dist, float view_cone_slope) {
 
-    RCLCPP_INFO(logger_, "Updating odometry");
+    //RCLCPP_INFO(logger_, "Updating odometry");
 
     odometry_mutex_.lock(); {
 
@@ -255,7 +255,7 @@ void Powerline::UpdateOdometry(point_t position, quat_t quat,
 
     }
 
-    updateProjectionPlane();
+    // updateProjectionPlane();
 
     predictLines(tf_buffer, min_point_dist, max_point_dist, view_cone_slope);
 
@@ -263,54 +263,54 @@ void Powerline::UpdateOdometry(point_t position, quat_t quat,
 
 void Powerline::CleanupLines(std::unique_ptr<tf2_ros::Buffer> &tf_buffer, float min_point_dist, float max_point_dist, float view_cone_slope) {
 
-    RCLCPP_INFO(logger_, "Cleaning up lines");
+    //RCLCPP_INFO(logger_, "Cleaning up lines");
 
     lines_mutex_.lock(); {
 
         std::vector<SingleLine> new_vec;
 
-        // RCLCPP_INFO(logger_, "Looping through all lines");
+        // //RCLCPP_INFO(logger_, "Looping through all lines");
 
         for (int i = 0; i < lines_.size(); i++) {
 
-            // RCLCPP_INFO(logger_, "At line number %d", i);
+            // //RCLCPP_INFO(logger_, "At line number %d", i);
 
             if (lines_[i].IsAlive(tf_buffer, min_point_dist, max_point_dist, view_cone_slope)) {
 
-                // RCLCPP_INFO(logger_, "Line is alive, pushing back to new vector");
+                // //RCLCPP_INFO(logger_, "Line is alive, pushing back to new vector");
 
                 new_vec.push_back(lines_[i]);
 
             }
         }
 
-        // RCLCPP_INFO(logger_, "Assigning new_vec to lines_");
+        // //RCLCPP_INFO(logger_, "Assigning new_vec to lines_");
         lines_ = new_vec;
 
         std::vector<inter_line_positions_t> new_pos_vec;
 
-        // RCLCPP_INFO(logger_, "Looping through inter line positions");
+        // //RCLCPP_INFO(logger_, "Looping through inter line positions");
 
         for (int i = 0; i < inter_line_positions_.size(); i++) {
 
-            // RCLCPP_INFO(logger_, "at ilp number %d", i);
+            // //RCLCPP_INFO(logger_, "at ilp number %d", i);
 
             bool line_1_found = false;
             bool line_2_found = false;
 
             for (int j = 0; j < lines_.size(); j++) {
 
-                // RCLCPP_INFO(logger_, "At line number %d", j);
+                // //RCLCPP_INFO(logger_, "At line number %d", j);
 
                 if (lines_[j].GetId() == inter_line_positions_[i].line_id_1) {
 
-                    // RCLCPP_INFO(logger_, "Found line 1 id match");
+                    // //RCLCPP_INFO(logger_, "Found line 1 id match");
 
                     line_1_found = true;
 
                 } else if (lines_[j].GetId() == inter_line_positions_[i].line_id_2) {
 
-                    // RCLCPP_INFO(logger_, "Found line 2 id match");
+                    // //RCLCPP_INFO(logger_, "Found line 2 id match");
 
                     line_2_found = true;
 
@@ -318,7 +318,7 @@ void Powerline::CleanupLines(std::unique_ptr<tf2_ros::Buffer> &tf_buffer, float 
 
                 if (line_1_found && line_2_found) {
 
-                    // RCLCPP_INFO(logger_, "Both lines are matched, pushing back and breaking");
+                    // //RCLCPP_INFO(logger_, "Both lines are matched, pushing back and breaking");
 
                     new_pos_vec.push_back(inter_line_positions_[i]);
 
@@ -329,20 +329,20 @@ void Powerline::CleanupLines(std::unique_ptr<tf2_ros::Buffer> &tf_buffer, float 
 
         }
 
-        // RCLCPP_INFO(logger_, "Assigning new_pos_vec to inter_line_positions_");
+        // //RCLCPP_INFO(logger_, "Assigning new_pos_vec to inter_line_positions_");
 
         inter_line_positions_ = new_pos_vec;
 
     } lines_mutex_.unlock();
 
-    // RCLCPP_INFO(logger_, "New lines_ length: %d \t New ILP length: %d", lines_.size(), inter_line_positions_.size());
+    // //RCLCPP_INFO(logger_, "New lines_ length: %d \t New ILP length: %d", lines_.size(), inter_line_positions_.size());
 
 }
 
 void Powerline::ComputeInterLinePositions(std::unique_ptr<tf2_ros::Buffer> &tf_buffer, 
                 float min_point_dist, float max_point_dist, float view_cone_slope, int inter_pos_window_size) {
 
-    RCLCPP_INFO(logger_, "Computing inter line positions");
+    //RCLCPP_INFO(logger_, "Computing inter line positions");
 
     quat_t direction;
 
@@ -352,83 +352,83 @@ void Powerline::ComputeInterLinePositions(std::unique_ptr<tf2_ros::Buffer> &tf_b
 
     } direction_mutex_.unlock();
 
-    // RCLCPP_INFO(logger_, "a2");
+    // //RCLCPP_INFO(logger_, "a2");
 
     quat_t q_pl_to_drone = quatInv(direction);
     rotation_matrix_t R_pl_to_drone = quatToMat(q_pl_to_drone);
 
     lines_mutex_.lock(); {
 
-        // RCLCPP_INFO(logger_, "a3");
+        // //RCLCPP_INFO(logger_, "a3");
 
-        // RCLCPP_INFO(logger_, "Looping through lines");
+        // //RCLCPP_INFO(logger_, "Looping through lines");
 
         for (int i = 0; i < ((int)lines_.size())-1; i++) {
 
-            // RCLCPP_INFO(logger_, "At line number %d", i);
+            // //RCLCPP_INFO(logger_, "At line number %d", i);
 
-            // RCLCPP_INFO(logger_, "a4");
-            // RCLCPP_INFO(logger_, "a4aaaaa");
-            // RCLCPP_INFO(logger_, "%d - %d", i, lines_.size()-1);
+            // //RCLCPP_INFO(logger_, "a4");
+            // //RCLCPP_INFO(logger_, "a4aaaaa");
+            // //RCLCPP_INFO(logger_, "%d - %d", i, lines_.size()-1);
 
-            // RCLCPP_INFO(logger_, "a4a");
+            // //RCLCPP_INFO(logger_, "a4a");
 
             if (!lines_[i].IsInFOV(tf_buffer, min_point_dist, max_point_dist, view_cone_slope)) {
 
-                // RCLCPP_INFO(logger_, "Line is not in FOV, not computing inter line position for line");
+                // //RCLCPP_INFO(logger_, "Line is not in FOV, not computing inter line position for line");
 
-                // RCLCPP_INFO(logger_, "a5");
+                // //RCLCPP_INFO(logger_, "a5");
 
                 continue;
 
             }
 
-            // RCLCPP_INFO(logger_, "Line is in FOV, going through other lines");
+            // //RCLCPP_INFO(logger_, "Line is in FOV, going through other lines");
 
             for (int j = i+1; j < lines_.size(); j++) {
 
-                // RCLCPP_INFO(logger_, "At second line number %d", j);
+                // //RCLCPP_INFO(logger_, "At second line number %d", j);
 
-                // RCLCPP_INFO(logger_, "a6");
+                // //RCLCPP_INFO(logger_, "a6");
 
                 if (!lines_[j].IsInFOV(tf_buffer, min_point_dist, max_point_dist, view_cone_slope)) {
 
-                    // RCLCPP_INFO(logger_, "Second line is not in FOV, not computing inter line distance between the lines");
+                    // //RCLCPP_INFO(logger_, "Second line is not in FOV, not computing inter line distance between the lines");
 
                     continue;
 
                 }
 
-                // RCLCPP_INFO(logger_, "Second line is in FOV");
+                // //RCLCPP_INFO(logger_, "Second line is in FOV");
 
                 bool ilp_found = false;
 
-                // RCLCPP_INFO(logger_, "Attempting to find matching ILP, going through ILPs");
+                // //RCLCPP_INFO(logger_, "Attempting to find matching ILP, going through ILPs");
 
                 for (int k = 0; k < inter_line_positions_.size(); k++) {
 
-                    // RCLCPP_INFO(logger_, "At ilp number %d", k);
+                    // //RCLCPP_INFO(logger_, "At ilp number %d", k);
 
-                    // RCLCPP_INFO(logger_, "a7");
+                    // //RCLCPP_INFO(logger_, "a7");
 
                     if (inter_line_positions_[k].line_id_1 == lines_[i].GetId() && inter_line_positions_[k].line_id_2 == lines_[j].GetId()) {
 
-                        // RCLCPP_INFO(logger_, "ILP matches lines 1-2, computing distance");
+                        // //RCLCPP_INFO(logger_, "ILP matches lines 1-2, computing distance");
 
-                        // RCLCPP_INFO(logger_, "a8");
+                        // //RCLCPP_INFO(logger_, "a8");
 
                         vector_t vec = lines_[j].GetPoint() - lines_[i].GetPoint();
                         vec = R_pl_to_drone * vec;
 
-                        // RCLCPP_INFO(logger_, "Pushing back new ilp");
+                        // //RCLCPP_INFO(logger_, "Pushing back new ilp");
 
                         inter_line_positions_[k].inter_line_position_window.push_back(vec);
 
                         while(inter_line_positions_[k].inter_line_position_window.size() > inter_pos_window_size) {
 
-                            // RCLCPP_INFO(logger_, "ILP larger than window, removing element");
+                            // //RCLCPP_INFO(logger_, "ILP larger than window, removing element");
 
-                            // RCLCPP_INFO(logger_, "a9");
+                            // //RCLCPP_INFO(logger_, "a9");
 
                             inter_line_positions_[k].inter_line_position_window.erase(inter_line_positions_[k].inter_line_position_window.begin());
 
@@ -439,22 +439,22 @@ void Powerline::ComputeInterLinePositions(std::unique_ptr<tf2_ros::Buffer> &tf_b
 
                     } else if (inter_line_positions_[k].line_id_1 == lines_[j].GetId() && inter_line_positions_[k].line_id_2 == lines_[i].GetId()) {
 
-                        // RCLCPP_INFO(logger_, "ILP matches lines 2-1, computing distance");
+                        // //RCLCPP_INFO(logger_, "ILP matches lines 2-1, computing distance");
 
-                        // RCLCPP_INFO(logger_, "a10");
+                        // //RCLCPP_INFO(logger_, "a10");
 
                         vector_t vec = lines_[i].GetPoint() - lines_[j].GetPoint();
                         vec = R_pl_to_drone * vec;
 
-                        // RCLCPP_INFO(logger_, "Pushing back new ilp");
+                        // //RCLCPP_INFO(logger_, "Pushing back new ilp");
 
                         inter_line_positions_[k].inter_line_position_window.push_back(vec);
 
                         while(inter_line_positions_[k].inter_line_position_window.size() > inter_pos_window_size) {
 
-                            // RCLCPP_INFO(logger_, "ILP larger than window, removing element");
+                            // //RCLCPP_INFO(logger_, "ILP larger than window, removing element");
 
-                            // RCLCPP_INFO(logger_, "a11");
+                            // //RCLCPP_INFO(logger_, "a11");
 
                             inter_line_positions_[k].inter_line_position_window.erase(inter_line_positions_[k].inter_line_position_window.begin());
 
@@ -465,7 +465,7 @@ void Powerline::ComputeInterLinePositions(std::unique_ptr<tf2_ros::Buffer> &tf_b
 
                     }
 
-                    // RCLCPP_INFO(logger_, "ilp didn't match the lines");
+                    // //RCLCPP_INFO(logger_, "ilp didn't match the lines");
 
                 }
 
@@ -483,7 +483,7 @@ void Powerline::ComputeInterLinePositions(std::unique_ptr<tf2_ros::Buffer> &tf_b
 
 void Powerline::updateProjectionPlane() {
 
-    // RCLCPP_INFO(logger_, "Updating projection plane");
+    // //RCLCPP_INFO(logger_, "Updating projection plane");
 
     quat_t direction_tmp;
     //quat_t quat_tmp;
@@ -544,23 +544,23 @@ int Powerline::findMatchingLine(point_t point) {
     int best_idx = -1;
     float best_dist = std::numeric_limits<float>::infinity();
 
-    RCLCPP_INFO(logger_, "Trying to find matching line to point [%f, %f, %f]", point(0), point(1), point(2));
+    //RCLCPP_INFO(logger_, "Trying to find matching line to point [%f, %f, %f]", point(0), point(1), point(2));
 
     lines_mutex_.lock(); {
         
         for (int i = 0; i < lines_.size(); i++) {
 
-            RCLCPP_INFO(logger_, "At line number %d [%f, %f, %f]", i, lines_[i].GetPoint()(0), lines_[i].GetPoint()(1), lines_[i].GetPoint()(2));
+            //RCLCPP_INFO(logger_, "At line number %d [%f, %f, %f]", i, lines_[i].GetPoint()(0), lines_[i].GetPoint()(1), lines_[i].GetPoint()(2));
 
             vector_t vec = (vector_t)(point - lines_[i].GetPoint());
 
             float dist = sqrt(vec.dot(vec));
 
-            RCLCPP_INFO(logger_, "Distance between point and line is %f", dist);
+            //RCLCPP_INFO(logger_, "Distance between point and line is %f", dist);
 
             if (dist < 3. && dist < best_dist) {
 
-                RCLCPP_INFO(logger_, "Found line candidate");
+                //RCLCPP_INFO(logger_, "Found line candidate");
 
                 best_dist = dist;
                 best_idx = i;
@@ -576,17 +576,38 @@ int Powerline::findMatchingLine(point_t point) {
 
 void Powerline::predictLines(std::unique_ptr<tf2_ros::Buffer> &tf_buffer, float min_point_dist, float max_point_dist, float view_cone_slope) {
 
-    // RCLCPP_INFO(logger_, "Predicting lines");
+    // //RCLCPP_INFO(logger_, "Predicting lines");
 
     vector_t delta_position;
     quat_t delta_quat, q_drone_to_pl;
 
     odometry_mutex_.lock(); {
 
-        delta_position = position_ - last_position_;
+        quat_t inv_last_quat = quatInv(last_quat_);
+        quat_t inv_quat = quatInv(quat_);
 
-        quat_t inv_quat = quatInv(last_quat_);
-        delta_quat = quatMultiply(quat_, inv_quat);
+        rotation_matrix_t W_R_D1 = quatToMat(last_quat_);
+        rotation_matrix_t W_R_D2 = quatToMat(quat_);
+        rotation_matrix_t D2_R_W = W_R_D2.transpose();
+
+        delta_quat = matToQuat(D2_R_W*W_R_D1);
+
+        // RCLCPP_INFO(logger_, "position: [%f,%f,%f]", position_(0), position_(1), position_(2));
+        // RCLCPP_INFO(logger_, "last position: [%f,%f,%f]", last_position_(0), last_position_(1), last_position_(2));
+        delta_position = position_ - last_position_;
+        // RCLCPP_INFO(logger_, "delta position: [%f,%f,%f]", delta_position(0), delta_position(1), delta_position(2));
+        delta_position = D2_R_W * delta_position;
+        // RCLCPP_INFO(logger_, "W delta position: [%f,%f,%f]", delta_position(0), delta_position(1), delta_position(2));
+        // RCLCPP_INFO(logger_, "\n\n");
+
+        // delta_quat = quatMultiply(last_quat_, quat_);
+        // delta_quat = quatMultiply(inv_last_quat, quat_);
+        // delta_quat = quatMultiply(last_quat_, inv_quat);
+        // delta_quat = quatMultiply(inv_last_quat, inv_quat);
+        // delta_quat = quatMultiply(quat_, last_quat_);
+        // delta_quat = quatMultiply(quat_, inv_last_quat);
+        // delta_quat = quatMultiply(inv_quat, last_quat_);
+        // delta_quat = quatMultiply(inv_quat, inv_last_quat);
 
     } odometry_mutex_.unlock();
 
@@ -608,30 +629,30 @@ void Powerline::predictLines(std::unique_ptr<tf2_ros::Buffer> &tf_buffer, float 
 
     lines_mutex_.lock(); {
 
-        // RCLCPP_INFO(logger_, "Going through %d lines", lines_.size());
+        // //RCLCPP_INFO(logger_, "Going through %d lines", lines_.size());
 
         std::vector<int> non_visible_line_indices;
 
         for (int i = 0; i < lines_.size(); i++) {
 
-            // RCLCPP_INFO(logger_, "At line number %d", i);
+            // //RCLCPP_INFO(logger_, "At line number %d", i);
 
             if (lines_[i].IsInFOV(tf_buffer, min_point_dist, max_point_dist, view_cone_slope)) {
 
-                // RCLCPP_INFO(logger_, "Line is in FOV, predicting");
+                // RCLCPP_INFO(logger_, "Line %d is in FOV, predicting", i);
 
                 lines_[i].Predict(delta_position, delta_quat, projection_plane, tf_buffer);
 
             } else {
 
-                // RCLCPP_INFO(logger_, "Line is not in FOV, putting index into non-visible indices list");
+                // RCLCPP_INFO(logger_, "Line %d is not in FOV, putting index into non-visible indices list", i);
 
                 non_visible_line_indices.push_back(i);
 
             }
         }
 
-        // RCLCPP_INFO(logger_, "Going through %d non-visible indices", non_visible_line_indices.size());
+        //RCLCPP_INFO(logger_, "Going through %d non-visible indices", non_visible_line_indices.size());
 
         for (int i = 0; i < non_visible_line_indices.size(); i++) {
 
@@ -662,7 +683,7 @@ void Powerline::predictLines(std::unique_ptr<tf2_ros::Buffer> &tf_buffer, float 
                         if (k == idx)
                             continue;
 
-                        if (lines_[k].GetId() == ref_line_id) {
+                        if (lines_[k].GetId() == ref_line_id && lines_[k].IsInFOV(tf_buffer, min_point_dist, max_point_dist, view_cone_slope)) {
 
                             reference_line_point = lines_[k].GetPoint();
                             ref_line_point_found = true;
@@ -694,10 +715,6 @@ void Powerline::predictLines(std::unique_ptr<tf2_ros::Buffer> &tf_buffer, float 
 
                         expected_positions.push_back(expected_pos);
 
-                    } else {
-
-                        // RCLCPP_FATAL(logger_, "Couldn't find reference line, error in ILP vector");
-
                     }
                 }
             }
@@ -723,7 +740,7 @@ void Powerline::predictLines(std::unique_ptr<tf2_ros::Buffer> &tf_buffer, float 
             }
         }
 
-        RCLCPP_INFO(logger_, "lines_.size(): %d", lines_.size());
+        //RCLCPP_INFO(logger_, "lines_.size(): %d", lines_.size());
 
     } lines_mutex_.unlock();
 

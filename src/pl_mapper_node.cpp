@@ -17,7 +17,11 @@ PowerlineMapperNode::PowerlineMapperNode(const std::string & node_name, const st
 
     this->declare_parameter<float>("min_point_dist", 0.1);
     this->declare_parameter<float>("max_point_dist", 20.);
-    this->declare_parameter<float>("view_cone_slope", 0.65);
+    this->declare_parameter<float>("view_cone_slope", 0.55);
+
+    this->declare_parameter<float>("min_point_dist_strict", 0.2);
+    this->declare_parameter<float>("max_point_dist_strict", 18.);
+    this->declare_parameter<float>("view_cone_slope_strict", 0.75);
 
     pl_direction_sub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
         "/pl_dir_computer/powerline_direction", 10, std::bind(&PowerlineMapperNode::plDirectionCallback, this, std::placeholders::_1));
@@ -46,7 +50,7 @@ PowerlineMapperNode::PowerlineMapperNode(const std::string & node_name, const st
 
             mmw_tf = tf_buffer_->lookupTransform("drone", "iwr6843_frame", tf2::TimePointZero);
 
-            RCLCPP_INFO(this->get_logger(), "Found mmWave transform, frame drone to iwr6843_frame");
+            //RCLCPP_INFO(this->get_logger(), "Found mmWave transform, frame drone to iwr6843_frame");
             break;
 
         } catch(tf2::TransformException & ex) {
@@ -78,26 +82,26 @@ PowerlineMapperNode::PowerlineMapperNode(const std::string & node_name, const st
     v_drone_to_mmw(1) = mmw_tf.transform.translation.y;
     v_drone_to_mmw(2) = mmw_tf.transform.translation.z;
 
-    RCLCPP_INFO(this->get_logger(), "Initialized PowerlineMapperNode");
+    //RCLCPP_INFO(this->get_logger(), "Initialized PowerlineMapperNode");
 
 }
 
 void PowerlineMapperNode::odometryCallback() {
 
-    RCLCPP_INFO(this->get_logger(), "Odometry callback");
+    //RCLCPP_INFO(this->get_logger(), "Odometry callback");
 
-    float min_point_dist, max_point_dist, view_cone_slope;
-    this->get_parameter("min_point_dist", min_point_dist);
-    this->get_parameter("max_point_dist", max_point_dist);
-    this->get_parameter("view_cone_slope", view_cone_slope);
+    float min_point_dist_strict, max_point_dist_strict, view_cone_slope_strict;
+    this->get_parameter("min_point_dist_strict", min_point_dist_strict);
+    this->get_parameter("max_point_dist_strict", max_point_dist_strict);
+    this->get_parameter("view_cone_slope_strict", view_cone_slope_strict);
 
-    // RCLCPP_INFO(this->get_logger(), "Fetching odometry transform");
+    // //RCLCPP_INFO(this->get_logger(), "Fetching odometry transform");
 
     geometry_msgs::msg::TransformStamped tf;
 
     try {
 
-        tf = tf_buffer_->lookupTransform("drone", "world", tf2::TimePointZero);
+        tf = tf_buffer_->lookupTransform("world", "drone", tf2::TimePointZero);
 
     } catch(tf2::TransformException & ex) {
 
@@ -112,6 +116,8 @@ void PowerlineMapperNode::odometryCallback() {
         tf.transform.translation.z
     );
 
+    // RCLCPP_INFO(this->get_logger(), "position = [%f, %f, %f]", position(0), position(1), position(2));
+
     quat_t quat(
         tf.transform.rotation.w,
         tf.transform.rotation.x,
@@ -119,19 +125,19 @@ void PowerlineMapperNode::odometryCallback() {
         tf.transform.rotation.z
     );
 
-    powerline_.UpdateOdometry(position, quat, tf_buffer_, min_point_dist, max_point_dist, view_cone_slope);
+    powerline_.UpdateOdometry(position, quat, tf_buffer_, min_point_dist_strict, max_point_dist_strict, view_cone_slope_strict);
 
     publishPowerline();
 
     //publishProjectionPlane();
 
-    RCLCPP_INFO(this->get_logger(), "\n\n\n");
+    //RCLCPP_INFO(this->get_logger(), "\n\n\n");
 
 }
 
 void PowerlineMapperNode::mmWaveCallback(const sensor_msgs::msg::PointCloud2::SharedPtr msg) {
 
-    RCLCPP_INFO(this->get_logger(), "mmWave callback");
+    //RCLCPP_INFO(this->get_logger(), "mmWave callback");
 
     float min_point_dist, max_point_dist, view_cone_slope;
     int inter_pos_window_size;
@@ -141,7 +147,7 @@ void PowerlineMapperNode::mmWaveCallback(const sensor_msgs::msg::PointCloud2::Sh
     this->get_parameter("view_cone_slope", view_cone_slope);
     this->get_parameter("inter_pos_window_size", inter_pos_window_size);
 
-    // RCLCPP_INFO(this->get_logger(), "Received mmWave message");
+    // //RCLCPP_INFO(this->get_logger(), "Received mmWave message");
 
     // read PointCloud2 msg data
     int pcl_size = msg->width;
@@ -155,7 +161,7 @@ void PowerlineMapperNode::mmWaveCallback(const sensor_msgs::msg::PointCloud2::Sh
 
     for (size_t i = 0; i < pcl_size; i++) {
 
-        RCLCPP_INFO(this->get_logger(), "a");
+        //RCLCPP_INFO(this->get_logger(), "a");
 
         point_t point(
             *(reinterpret_cast<float*>(ptr + 0)),
@@ -190,11 +196,11 @@ void PowerlineMapperNode::mmWaveCallback(const sensor_msgs::msg::PointCloud2::Sh
 
     }   
 
-    // RCLCPP_INFO(this->get_logger(), "b");
+    // //RCLCPP_INFO(this->get_logger(), "b");
 
     // int count = powerline_.GetVisibleLines().size();
 
-    // RCLCPP_INFO(this->get_logger(), "Currently has %d visible lines registered", count);
+    // //RCLCPP_INFO(this->get_logger(), "Currently has %d visible lines registered", count);
 
     // transformed_points.push_back(dummy);
     // projected_points.push_back(dummy);
@@ -202,29 +208,29 @@ void PowerlineMapperNode::mmWaveCallback(const sensor_msgs::msg::PointCloud2::Sh
     publishPoints(transformed_points, transformed_points_pub_);
     publishPoints(projected_points, projected_points_pub_);
 
-    // RCLCPP_INFO(this->get_logger(), "c");
+    // //RCLCPP_INFO(this->get_logger(), "c");
 
-    // RCLCPP_INFO(this->get_logger(), "Now registered %d lines", powerline_.GetLinesCount());
+    // //RCLCPP_INFO(this->get_logger(), "Now registered %d lines", powerline_.GetLinesCount());
 
     powerline_.CleanupLines(tf_buffer_, min_point_dist, max_point_dist, view_cone_slope);
 
-    // RCLCPP_INFO(this->get_logger(), "Finished Cleanup, now registered %d lines", powerline_.GetLinesCount());
+    // //RCLCPP_INFO(this->get_logger(), "Finished Cleanup, now registered %d lines", powerline_.GetLinesCount());
 
-    // RCLCPP_INFO(this->get_logger(), "d");
+    // //RCLCPP_INFO(this->get_logger(), "d");
 
     powerline_.ComputeInterLinePositions(tf_buffer_, min_point_dist, max_point_dist, view_cone_slope, inter_pos_window_size);
 
-    RCLCPP_INFO(this->get_logger(), "Finished mmWave callback, now registered %d lines", powerline_.GetLinesCount());
+    //RCLCPP_INFO(this->get_logger(), "Finished mmWave callback, now registered %d lines", powerline_.GetLinesCount());
 
-    RCLCPP_INFO(this->get_logger(), "\n\n\n");
+    //RCLCPP_INFO(this->get_logger(), "\n\n\n");
 
 }
 
 void PowerlineMapperNode::plDirectionCallback(const geometry_msgs::msg::PoseStamped::SharedPtr msg) {
 
-    RCLCPP_INFO(this->get_logger(), "PL direction callback");
+    //RCLCPP_INFO(this->get_logger(), "PL direction callback");
 
-    // RCLCPP_INFO(this->get_logger(), "Received powerline direction message");
+    // //RCLCPP_INFO(this->get_logger(), "Received powerline direction message");
 
     quat_t pl_direction;
     pl_direction(0) = msg->pose.orientation.w;
@@ -236,12 +242,12 @@ void PowerlineMapperNode::plDirectionCallback(const geometry_msgs::msg::PoseStam
 
     powerline_.UpdateDirection(pl_direction);
 
-    RCLCPP_INFO(this->get_logger(), "\n\n\n");
+    //RCLCPP_INFO(this->get_logger(), "\n\n\n");
 }
 
 void PowerlineMapperNode::publishPowerline() {
 
-    RCLCPP_INFO(this->get_logger(), "Publishing powerline");
+    //RCLCPP_INFO(this->get_logger(), "Publishing powerline");
 
     std::vector<SingleLine> lines = powerline_.GetVisibleLines();
     //orientation_t plane_orientation = powerline_.GetPlaneOrientation();
@@ -275,7 +281,7 @@ void PowerlineMapperNode::publishPowerline() {
 
     } else {
 
-        RCLCPP_INFO(this->get_logger(), "No visible registered powerlines");
+        //RCLCPP_INFO(this->get_logger(), "No visible registered powerlines");
 
     }
 
@@ -336,7 +342,7 @@ void PowerlineMapperNode::publishPowerline() {
 
 //void PowerlineMapperNode::publishProjectionPlane() {
 //
-//    RCLCPP_INFO(this->get_logger(), "Publishing projection plane");
+//    //RCLCPP_INFO(this->get_logger(), "Publishing projection plane");
 //
 //    plane_t plane = powerline_.GetProjectionPlane();
 //
@@ -367,7 +373,7 @@ void PowerlineMapperNode::publishPowerline() {
 
 void PowerlineMapperNode::publishPoints(std::vector<point_t> points, rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pub) {
 
-    // RCLCPP_INFO(this->get_logger(), "Publishing points");
+    // //RCLCPP_INFO(this->get_logger(), "Publishing points");
 
     auto pcl2_msg = sensor_msgs::msg::PointCloud2();
     pcl2_msg.header.frame_id = "drone";
