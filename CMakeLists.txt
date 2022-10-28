@@ -38,7 +38,6 @@ find_package(geometry_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(cv_bridge REQUIRED)
-#find_package(PCL 1.3 REQUIRED COMPONENTS common io)
 find_package(pcl_ros REQUIRED)
 find_package(pcl_conversions REQUIRED)
 find_package(tf2 REQUIRED)
@@ -106,74 +105,6 @@ ament_target_dependencies(drone_frame_broadcaster
 )
 install(TARGETS drone_frame_broadcaster DESTINATION lib/${PROJECT_NAME})
 
-add_executable(logger
-  src/logger_node.cpp
-  src/geometry.cpp
-)
-ament_target_dependencies(logger
-  rclcpp
-  geometry_msgs
-  sensor_msgs
-  px4_msgs
-  tf2
-  tf2_ros
-  OpenCV
-  cv_bridge
-  iii_interfaces
-)
-install(TARGETS logger DESTINATION lib/${PROJECT_NAME})
-
-
-#add_executable(offboard_control_ID
-#  src/offboard_control_ID.cpp
-#)
-#ament_target_dependencies(offboard_control_ID
-#    rclcpp
-#    px4_msgs
-#    std_msgs
-#    iii_interfaces
-#)
-#install(TARGETS offboard_control_ID DESTINATION lib/${PROJECT_NAME})
-#
-#
-#add_executable(offboard_control_ID_midflight
-#  src/offboard_control_ID_midflight.cpp
-#)
-#ament_target_dependencies(offboard_control_ID_midflight
-#    rclcpp
-#    px4_msgs
-#    std_msgs
-#    iii_interfaces
-#    geometry_msgs
-#)
-#install(TARGETS offboard_control_ID_midflight DESTINATION lib/${PROJECT_NAME})
-#
-#
-#add_executable(offboard_control_ID_KF_yaw
-#  src/offboard_control_ID_KF_yaw.cpp
-#)
-#ament_target_dependencies(offboard_control_ID_KF_yaw
-#    rclcpp
-#    px4_msgs
-#    std_msgs
-#    iii_interfaces
-#    geometry_msgs
-#)
-#install(TARGETS offboard_control_ID_KF_yaw DESTINATION lib/${PROJECT_NAME})
-#
-#
-#add_executable(offboard_control_magnetometers
-#  src/offboard_control_magnetometers.cpp
-#)
-#ament_target_dependencies(offboard_control_magnetometers
-#    rclcpp
-#    px4_msgs
-#    std_msgs
-#    geometry_msgs
-#)
-#install(TARGETS offboard_control_magnetometers DESTINATION lib/${PROJECT_NAME})
-
-
 function(custom_executable target)
   add_executable(${target} src/${target}.cpp)
   ament_target_dependencies(${target}
@@ -191,14 +122,10 @@ function(custom_executable target)
 endfunction()
 
 
-# Add examples
-#custom_executable(offboard_control)
-#custom_executable(vel_ctrl_vec_pub)
 custom_executable(img_3d_to_2d_proj)
-custom_executable(lidar_to_mmwave)
 custom_executable(hough_pub)
-#custom_executable(offboard_control_fly_to_line)
-#custom_executable(img_decompress)
+custom_executable(offboard_control_fly_to_line)
+custom_executable(img_decompress)
 
 
 add_executable(depth_cam_to_mmwave src/depth_cam_to_mmwave.cpp)
@@ -209,31 +136,6 @@ ament_target_dependencies(depth_cam_to_mmwave
   pcl_conversions
 )
 install(TARGETS depth_cam_to_mmwave DESTINATION lib/${PROJECT_NAME})
-
-
-
-
-add_executable(HW_hough_timing
-  src/HW_hough_timing.cpp
-  src/hough-accel-ip/ip/drivers/houghlines_accel_v1_0/src/xhoughlines_accel_linux.c
-  src/hough-accel-ip/ip/drivers/houghlines_accel_v1_0/src/xhoughlines_accel.c
-)
-ament_target_dependencies(HW_hough_timing
-  rclcpp
-  sensor_msgs
-  OpenCV
-  cv_bridge
-  iii_interfaces
-)
-install(TARGETS HW_hough_timing DESTINATION lib/${PROJECT_NAME})
-
-custom_executable(SW_hough_timing)
-
-
-
-
-
-
 
 ############
 # Install ##
