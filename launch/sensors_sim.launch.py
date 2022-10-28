@@ -7,15 +7,19 @@ from launch_ros.substitutions import FindPackageShare
 from launch.substitutions import PathJoinSubstitution
 
 def generate_launch_description():
-    sensor_simulation_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource([
-            PathJoinSubstitution([
-                FindPackageShare("iii_drone"),
-                "launch/simulate_pointcloud_control_launch.py"
-            ])
-        ])
+    cam = Node(
+        package='iii_drone',
+        executable='img_3d_to_2d_proj',
+        name='img_3d_to_2d_proj'
+    )
+
+    mmwave = Node(
+        package='iii_drone',
+        executable='depth_cam_to_mmwave',
+        name='depth_cam_to_mmwave'
     )
 
     return LaunchDescription([
-        sensor_simulation_launch
+        cam,
+        mmwave
     ])
