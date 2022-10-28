@@ -55,13 +55,19 @@ private:
     std::unique_ptr<tf2_ros::Buffer> tf_buffer_;
     rclcpp::TimerBase::SharedPtr drone_tf_timer_{nullptr};
 
+    bool received_angle = false;
+    bool received_first_quat = false;
+    bool received_second_quat = false;
+
     quat_t drone_quat_, last_drone_quat_;
 
     float r_, q_;
 
     quat_t pl_direction_;
 
-    kf_est_t pl_angle_est;
+    float W_pl_yaw_ = 0.;
+
+    kf_est_t pl_angle_est[3];
 
     std::mutex direction_mutex_;
     std::mutex kf_mutex_;
@@ -75,6 +81,7 @@ private:
     void publishPowerlineDirection();
 
     float mapAngle(float curr_angle, float new_angle);
+    float mapAngle2(float curr_angle, float new_angle);
     float backmapAngle(float angle);
 
     //std::ofstream file;

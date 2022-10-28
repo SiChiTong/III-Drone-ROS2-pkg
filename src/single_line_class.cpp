@@ -59,11 +59,18 @@ point_t SingleLine::GetPoint() {
 
 }
 
-bool SingleLine::IsAlive() {
+void SingleLine::SetPoint(point_t point) {
 
-    bool in_FOV = estimates[2].state_est > 0.5 && estimates[2].state_est < 20;
+    pl_point_ = point;
+    estimates[0].state_est = point(0);
+    estimates[1].state_est = point(1);
+    estimates[2].state_est = point(2);
 
-    if (in_FOV && --alive_cnt_ <= alive_cnt_low_thresh_) {
+}
+
+bool SingleLine::IsAlive(std::unique_ptr<tf2_ros::Buffer> &tf_buffer, float min_point_dist, float max_point_dist, float view_cone_slope) {
+
+    if (IsInFOV(tf_buffer, min_point_dist, max_point_dist, view_cone_slope) && --alive_cnt_ <= alive_cnt_low_thresh_) {
 
         return false;
 
@@ -80,6 +87,50 @@ bool SingleLine::IsVisible() {
 
 }
 
+bool SingleLine::IsInFOV(point_t point, float min_point_dist, float max_point_dist, float view_cone_slope) {
+
+    bool in_FOV = true;
+
+    float dist = point.norm();
+
+    in_FOV &= dist <= max_point_dist;
+    in_FOV &= dist >= min_point_dist;
+
+    float yz_dist = sqrt(point(1)*point(1)+point(2)*point(2));
+    in_FOV &= point(0) > view_cone_slope*yz_dist;
+
+    return in_FOV;
+
+}
+
+bool SingleLine::IsInFOV(std::unique_ptr<tf2_ros::Buffer> &tf_buffer, float min_point_dist, float max_point_dist, float view_cone_slope) {
+
+    // //RCLCPP_INFO(logger_, "b1");
+
+    geometry_msgs::msg::PointStamped point_stamped;
+    point_stamped.header.frame_id = "drone";
+    point_stamped.point.x = pl_point_(0);
+    point_stamped.point.y = pl_point_(1);
+    point_stamped.point.z = pl_point_(2);
+
+    // //RCLCPP_INFO(logger_, "b2");
+
+    geometry_msgs::msg::PointStamped mmwave_point_stamped = tf_buffer->transform(point_stamped, "iwr6843_frame");
+
+    // //RCLCPP_INFO(logger_, "b3");
+
+    point_t mmwave_point(
+        mmwave_point_stamped.point.x,
+        mmwave_point_stamped.point.y,
+        mmwave_point_stamped.point.z
+    );
+
+    // //RCLCPP_INFO(logger_, "b4");
+
+    // return IsInFOV(pl_point_, min_point_dist, max_point_dist, view_cone_slope);
+    return IsInFOV(mmwave_point, min_point_dist, max_point_dist, view_cone_slope);
+
+}
 
 void SingleLine::Update(point_t point) {
 
@@ -87,7 +138,7 @@ void SingleLine::Update(point_t point) {
 
     for (int i = 0; i < 3; i++) {
 
-        float y_bar = point[i] - estimates[i].state_est;
+        float y_bar = point(i) - estimates[i].state_est;
         float s = estimates[i].var_est + r_;
 
         float k = estimates[i].var_est / s;
@@ -109,19 +160,33 @@ void SingleLine::Update(point_t point) {
 
 }
 
-void SingleLine::Predict(vector_t delta_position, quat_t delta_quat, plane_t projection_plane) {
+void SingleLine::Predict(vector_t delta_position, quat_t delta_quat, plane_t projection_plane, std::unique_ptr<tf2_ros::Buffer> &tf_buffer) {
 
-    rotation_matrix_t R = quatToMat(delta_quat);
+    //RCLCPP_INFO(logger_, "Predicting line");
 
-    // RCLCPP_INFO(logger_, "Point before: (%f, %f, %f)", pl_point_(0), pl_point_(1), pl_point_(2));
+    orientation_t eul = quatToEul(delta_quat);
 
-    pl_point_ = (R * pl_point_) + delta_position;
+    // eul(0) = 0;
+    // eul(1) = 0;
+    // eul(2) = 0;
 
-    pl_point_ = projectPointOnPlane(pl_point_, projection_plane);
+    rotation_matrix_t R = eulToR(eul);
+    // rotation_matrix_t R = quatToMat(delta_quat);
 
-    // RCLCPP_INFO(logger_, "Delta position: (%f, %f, %f)", delta_position(0), delta_position(1), delta_position(2));
+    //RCLCPP_INFO(logger_, "Point before: (%f, %f, %f)", pl_point_(0), pl_point_(1), pl_point_(2));
 
-    // RCLCPP_INFO(logger_, "Point after: (%f, %f, %f)", pl_point_(0), pl_point_(1), pl_point_(2));
+    delta_position = projectPointOnPlane(delta_position, projection_plane);
+    // delta_position(0) = 0;
+    // delta_position(1) = 0;
+
+    pl_point_ = (R * pl_point_) - delta_position;
+    // pl_point_ = (R.transpose() * pl_point_) + delta_position;
+
+    // pl_point_ = projectPointOnPlane(pl_point_, projection_plane);
+
+    // //RCLCPP_INFO(logger_, "Delta position: (%f, %f, %f)", delta_position(0), delta_position(1), delta_position(2));
+
+    //RCLCPP_INFO(logger_, "Point after: (%f, %f, %f)", pl_point_(0), pl_point_(1), pl_point_(2));
 
     for (int i = 0; i < 3; i++) {
 

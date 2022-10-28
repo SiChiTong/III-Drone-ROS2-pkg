@@ -82,6 +82,8 @@ class HoughTFPub : public rclcpp::Node
 		void KF_predict();
 		void KF_update(); 
 
+		int getBestLineIndex(std::vector<cv::Vec2f> lines, int img_height, int img_width);
+
 		float yaw_prev_;
 		float yaw_curr_;
 		float yaw_diff_;
@@ -166,6 +168,28 @@ void HoughTFPub::OnOdoMsg(const px4_msgs::msg::VehicleOdometry::SharedPtr _msg){
 }
 
 
+int HoughTFPub::getBestLineIndex(std::vector<cv::Vec2f> lines, int img_height, int img_width) {
+
+	int best_idx = -1;
+	float best_dist = 100000.;
+
+	float x0 = img_width/2;
+	float y0 = img_height/2;
+
+    for( size_t i = 0; i < lines.size(); i++ ) {
+		
+		float a = -cos(lines[i][1])/sin(lines[i][1]);
+		float b = lines[i][0]/sin(lines[i][1]);
+
+		float dist = abs(a*x0 - y0 + b) / sqrt(a*a+1);
+
+		if (dist < best_dist) {
+			best_idx = i;
+		}
+	}
+}
+
+
 // mmwave message callback function
 void HoughTFPub::OnCameraMsg(const sensor_msgs::msg::Image::SharedPtr _msg){
 
@@ -183,29 +207,33 @@ void HoughTFPub::OnCameraMsg(const sensor_msgs::msg::Image::SharedPtr _msg){
 
 	float avg_theta_tmp = 0.0;
 
-    for( size_t i = 0; i < lines.size(); i++ )
-    {
-        float theta = lines[i][1];
-		// Fix nan
-		if (theta != theta){
-			theta = 0;
-		}
-		// Convert from {0,180} deg to {-90,90} deg
-		if (theta > PI/2)
-		{
-			theta = -(PI - theta);
-		}
-		avg_theta_tmp = avg_theta_tmp + theta;
+    // for( size_t i = 0; i < lines.size(); i++ )
+    // {
+    //     float theta = lines[i][1];
+	// 	// Fix nan
+	// 	if (theta != theta){
+	// 		theta = 0;
+	// 	}
+	// 	// Convert from {0,180} deg to {-90,90} deg
+	// 	if (theta > PI/2)
+	// 	{
+	// 		theta = -(PI - theta);
+	// 	}
+	// 	avg_theta_tmp = avg_theta_tmp + theta;
 
-		break;
-    }
+	// 	break;
+    // }
 
 	
 	if (lines.size() > 0){
 
+		int idx = getBestLineIndex(lines, img.rows, img.cols);
+
+		avg_theta_tmp = lines[idx][1];
+
 		// Make compatible with right hand rule
 		//avg_theta_ = - (avg_theta_tmp / (float)lines.size());
-		avg_theta_ = - avg_theta_tmp;
+		avg_theta_ = -avg_theta_tmp;
 
 		iii_interfaces::msg::PowerlineDirection pl_msg;
 		std::lock_guard<std::mutex> guard(x_hat_mutex_);

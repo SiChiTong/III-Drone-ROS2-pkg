@@ -45,7 +45,7 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
-        sensor_simulation_launch,
+        #sensor_simulation_launch,
         #tf_drone_to_iwr,
         #world_to_drone,
         hough,

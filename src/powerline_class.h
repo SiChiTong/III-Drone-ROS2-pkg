@@ -41,11 +41,39 @@ public:
 
     point_t UpdateLine(point_t point);
     void UpdateDirection(quat_t pl_direction);
-    void UpdateOdometry(point_t position, quat_t quat);
+    void UpdateOdometry(point_t position, quat_t quat, std::unique_ptr<tf2_ros::Buffer> &tf_buffer, float min_point_dist, float max_point_dist, float view_cone_slope);
 
-    void CleanupLines();
+    void CleanupLines(std::unique_ptr<tf2_ros::Buffer> &tf_buffer, float min_point_dist, float max_point_dist, float view_cone_slope);
+    void ComputeInterLinePositions(std::unique_ptr<tf2_ros::Buffer> &tf_buffer, 
+            float min_point_dist, float max_point_dist, float view_cone_slope, int inter_pos_window_size);
+
+    int GetLinesCount() {
+
+        int cnt;
+
+        lines_mutex_.lock(); {
+
+            cnt = lines_.size();
+
+        } lines_mutex_.unlock();
+
+        return cnt;
+
+    }
 
 private:
+    struct inter_line_positions_t {
+
+        int line_id_1;
+        int line_id_2;
+        std::vector<vector_t> inter_line_position_window;
+
+    };
+
+    bool received_pl_dir = false;
+    bool received_first_odom = false;
+    bool received_second_odom = false;
+
     std::mutex lines_mutex_;
     std::mutex direction_mutex_;
     std::mutex odometry_mutex_;
@@ -78,6 +106,8 @@ private:
     int findMatchingLine(point_t point);
     point_t projectPoint(point_t point);
 
-    void predictLines();
+    void predictLines(std::unique_ptr<tf2_ros::Buffer> &tf_buffer, float min_point_dist, float max_point_dist, float view_cone_slope);
+
+    std::vector<inter_line_positions_t> inter_line_positions_;
     
 };
