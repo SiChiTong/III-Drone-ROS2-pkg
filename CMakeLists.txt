@@ -245,8 +245,6 @@ install(PROGRAMS
   scripts/image_drawer.py
   scripts/image_decompress.py
   scripts/draw_PL_IDs.py
-  scripts/print_PL_IDs.py
-  scripts/image_drawer_HW_compressed.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
