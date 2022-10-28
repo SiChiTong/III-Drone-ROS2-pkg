@@ -15,8 +15,12 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
-include_directories(include/hough-accel-ip/ip/drivers/houghlines_accel_v1_0/src)
-link_directories(include/hough-accel-ip/ip/drivers/houghlines_accel_v1_0/src)
+if(NOT DEFINED CMAKE_SUPPRESS_DEVELOPER_WARNINGS)
+     set(CMAKE_SUPPRESS_DEVELOPER_WARNINGS 1 CACHE INTERNAL "No dev warnings")
+endif()
+
+include_directories(src/hough-accel-ip/ip/drivers/houghlines_accel_v1_0/src)
+link_directories(src/hough-accel-ip/ip/drivers/houghlines_accel_v1_0/src)
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
@@ -44,8 +48,8 @@ find_package(image_transport REQUIRED)
 
 add_executable(hough_interfacer
   src/hough_interfacer_node.cpp
-  include/hough-accel-ip/ip/drivers/houghlines_accel_v1_0/src/xhoughlines_accel_linux.c
-  include/hough-accel-ip/ip/drivers/houghlines_accel_v1_0/src/xhoughlines_accel.c
+  src/hough-accel-ip/ip/drivers/houghlines_accel_v1_0/src/xhoughlines_accel_linux.c
+  src/hough-accel-ip/ip/drivers/houghlines_accel_v1_0/src/xhoughlines_accel.c
 )
 ament_target_dependencies(hough_interfacer
   rclcpp
@@ -211,8 +215,8 @@ install(TARGETS depth_cam_to_mmwave DESTINATION lib/${PROJECT_NAME})
 
 add_executable(HW_hough_timing
   src/HW_hough_timing.cpp
-  include/hough-accel-ip/ip/drivers/houghlines_accel_v1_0/src/xhoughlines_accel_linux.c
-  include/hough-accel-ip/ip/drivers/houghlines_accel_v1_0/src/xhoughlines_accel.c
+  src/hough-accel-ip/ip/drivers/houghlines_accel_v1_0/src/xhoughlines_accel_linux.c
+  src/hough-accel-ip/ip/drivers/houghlines_accel_v1_0/src/xhoughlines_accel.c
 )
 ament_target_dependencies(HW_hough_timing
   rclcpp
